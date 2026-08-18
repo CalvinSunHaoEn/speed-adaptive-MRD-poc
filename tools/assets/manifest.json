@@ -1,0 +1,35 @@
+{
+  "comment": [
+    "Vector assets exported from Figma frame 480:8550 (file 6LyB9UDTJOIJCJPtdoLUnX).",
+    "`url` values come from the Figma MCP tools (get_design_context / download_assets)",
+    "and expire about 7 days after they are issued — refresh them before running",
+    "`npm run fetch:assets`. `size` is the node's box in Figma, used by",
+    "make-placeholders.mjs so a stand-in has the right aspect ratio."
+  ],
+  "assets": [
+    { "file": "vector-8564.svg", "node": "480:8564", "size": [2.2545, 6.0727], "kind": "limb" },
+    { "file": "vector-8567.svg", "node": "480:8567", "size": [2.2545, 5.8909], "kind": "limb" },
+    { "file": "frame-8568.svg", "node": "480:8569", "size": [2.0364, 3.6727], "kind": "limb" },
+    { "file": "vector-8573.svg", "node": "480:8573", "size": [2.0364, 4.8727], "kind": "limb" },
+    { "file": "frame-8574.svg", "node": "480:8575", "size": [2.0364, 4.8727], "kind": "limb" },
+    { "file": "frame-8578.svg", "node": "480:8577", "size": [2.2543, 6.8005], "kind": "limb" },
+    { "file": "vector-8579.svg", "node": "480:8579", "size": [4.1455, 4.1455], "kind": "head" },
+    { "file": "vector-8581.svg", "node": "480:8581", "size": [2.2545, 6.0727], "kind": "limb" },
+    { "file": "vector-8584.svg", "node": "480:8584", "size": [2.2545, 5.8909], "kind": "limb" },
+    { "file": "frame-8585.svg", "node": "480:8586", "size": [2.0364, 3.6727], "kind": "limb" },
+    { "file": "vector-8590.svg", "node": "480:8590", "size": [2.0364, 4.8727], "kind": "limb" },
+    { "file": "frame-8591.svg", "node": "480:8592", "size": [2.0364, 4.8727], "kind": "limb" },
+    { "file": "frame-8601.svg", "node": "480:8602", "size": [2.0364, 3.6727], "kind": "limb" },
+    { "file": "frame-8607.svg", "node": "480:8608", "size": [2.0364, 4.8727], "kind": "limb" },
+    { "file": "frame-8618.svg", "node": "480:8619", "size": [2.0364, 3.6727], "kind": "limb" },
+    { "file": "frame-8624.svg", "node": "480:8625", "size": [2.0364, 4.8727], "kind": "limb" },
+    { "file": "icon-pace-setter-a.svg", "node": "I480:8629;204:4795;42:19952", "size": [14.4, 17.1432], "kind": "glyph" },
+    { "file": "icon-pace-setter-b.svg", "node": "I480:8629;204:4795;42:19953", "size": [14.4024, 17.1432], "kind": "glyph" },
+    { "file": "pace-8-10.svg", "node": "480:8627", "size": [66, 20], "kind": "text", "text": "8’10”/km" },
+    { "file": "pace-7-30.svg", "node": "480:8628", "size": [67, 20], "kind": "text", "text": "7’30”/km" },
+    { "file": "arrow-mask.svg", "node": "480:8633", "size": [240, 150], "kind": "chevron-mask" },
+    { "file": "arrow-fill.svg", "node": "480:8633", "size": [248.016, 140.895], "kind": "chevron-fill" },
+    { "file": "ellipse-mask.svg", "node": "480:8635", "size": [248, 140.896], "kind": "chevron-mask" },
+    { "file": "ellipse-fill.svg", "node": "480:8635", "size": [159.403, 162.475], "kind": "glow" }
+  ]
+}
