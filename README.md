@@ -27,9 +27,13 @@ npm run build
 npm run preview
 ```
 
-Pushing to `claude/figma-meta-rayna-prototype-x6m6j7` deploys to GitHub Pages via
-`.github/workflows/deploy.yml`. **This needs enabling once:** repo *Settings →
-Pages → Source: **GitHub Actions***. After that the prototype lives at
+Pushing to `main` or to `claude/figma-meta-rayna-prototype-x6m6j7` deploys to
+GitHub Pages via `.github/workflows/deploy.yml`.
+
+**This needs enabling once, by hand:** repo *Settings → Pages → Source:
+**GitHub Actions***. Until it is, the `build` job passes and the `deploy` job
+fails immediately — it cannot start without the `github-pages` environment, so
+it produces no log. Once enabled, the prototype lives at
 `https://<owner>.github.io/speed-adaptive-MRD-poc/` — open that in the glasses.
 
 ## Figma assets
