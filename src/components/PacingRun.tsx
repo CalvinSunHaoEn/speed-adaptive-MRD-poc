@@ -100,6 +100,12 @@ const COPY_B: CopyIds = {
  * 480:8577 / 480:8610 carry a fixed -159° rotation in the design itself, so
  * Figma reports their axis-aligned bounding box (4.5417 × 7.1563). These are
  * the unrotated box and the offset that put its centre back on the AABB centre.
+ *
+ * Verified in Chromium at 600×600: the rendered AABB comes back 4.5363 × 7.1518
+ * centred 0.003px / 0.004px off Figma's, which is CSS pixel snapping (1/64px)
+ * on a box this small. Figma's own export agrees on the unrotated size too —
+ * it emits `w: hypot(-46.3439cqw, -11.2901cqh)`, `h: hypot(53.6561cqw,
+ * -88.7099cqh)` against the AABB, which evaluates to 2.25455 × 6.80000.
  */
 const WEDGE_AABB = { x: 2.3575117588043213, y: 10.292738914489746, w: 4.541701085578097, h: 7.156301398467235 };
 const WEDGE = { w: 2.2543, h: 6.8005, rotation: -159 };

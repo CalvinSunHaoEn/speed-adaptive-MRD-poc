@@ -51,7 +51,12 @@ export default function SpeedUpStrip() {
           }}
         >
           {/* Figma centres this node horizontally; the -50% lives on a wrapper
-              so the timeline keeps sole ownership of the node's transform. */}
+              so the timeline keeps sole ownership of the node's transform.
+              The `50%` resolves against the masked div — `mask-image` makes it
+              the containing block — which is the full 240px width of the strip,
+              so this lands 0.3px left of the chevron's centreline, exactly as
+              Figma specifies. Measured in Chromium at 600×600: strip centre and
+              480:8633's centre both at x=300.000, this wrapper at x=299.688. */}
           <div
             style={{
               position: 'absolute',

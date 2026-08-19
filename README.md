@@ -68,9 +68,12 @@ drivable from a keyboard or a paired remote.
 
 ## Known gaps
 
-- **The artwork is placeholder.** See `src/assets/figma/README.md` — the build
-  environment could not reach Figma's asset hosts. Geometry and timing are
-  right; the vectors are stand-ins until the real exports are dropped in.
+- **The artwork is placeholder.** `tools/assets/manifest.json` carries a fresh
+  export URL for all 24 assets, but the build environment's egress policy
+  refuses `CONNECT www.figma.com:443`, so `npm run fetch:assets` cannot pull the
+  bytes. Run it from a machine that can reach Figma; see
+  `src/assets/figma/README.md`. Geometry and timing are right; the vectors are
+  stand-ins until the real exports are dropped in.
 - **Text is artwork, not type.** The pace readouts ship as SVG rather than live
   text, because the design uses One UI Sans GUI, which can't be redistributed.
   Changing the numbers means re-exporting those two nodes.
