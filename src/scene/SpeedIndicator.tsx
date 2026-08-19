@@ -61,7 +61,6 @@ export function SpeedIndicator({ playing }: { playing: boolean }) {
         paddingRight: 19,
         paddingTop: 12,
         paddingBottom: 12,
-        borderRadius: 24,
         overflow: 'hidden',
         transformOrigin: speedIndicator.transformOrigin,
       }}
@@ -73,7 +72,7 @@ export function SpeedIndicator({ playing }: { playing: boolean }) {
           position: 'absolute',
           inset: 0,
           background: '#000',
-          borderRadius: 24,
+          borderRadius: 'inherit',
           pointerEvents: 'none',
         }}
       />
