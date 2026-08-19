@@ -509,25 +509,33 @@ export const paceSetterIcon: Track = {
  * after forming it, which is what the outer/inner split reproduces.
  */
 export const arrow: Track = {
-  initial: { y: 23, filter: 'blur(0px)', opacity: 0 },
-  animate: {
-    y: [23, 0, 0],
-    filter: ['blur(0px)', 'blur(10px)', 'blur(10px)'],
-    opacity: [0, 1, 1, 1, 0, 0],
-  },
+  initial: { y: 23 },
+  animate: { y: [23, 0, 0] },
   transition: {
     y: {
       duration: DURATION_S,
       times: [0, 0.3279, 1],
       ease: [EASE_SMOOTH, 'linear'],
     },
-    filter: {
-      duration: DURATION_S,
-      times: [0, 0.3277, 1],
-      ease: [EASE_SMOOTH, 'linear'],
-    },
-    // Figma's Arrow is a vector whose red IS its inner shadow, so the shadow's
-    // alpha doubles as the layer's visibility envelope — see the note above.
+  },
+}
+
+/**
+ * Visibility envelope for the whole SpeedUpArrow group (480:8631) — chevron and
+ * glow ellipse together.
+ *
+ * The curve is the alpha of the Arrow's `boxShadow` track, which is what makes
+ * the arrow appear and disappear (see the note above). It is applied to the
+ * group rather than the chevron alone because the ellipse needs it too: the
+ * timeline leaves the ellipse mid-sweep at y = -175, still poking into the top
+ * of the mask. Figma loops straight back to t=0 and never dwells there, but
+ * this prototype holds its last frame, so that sliver would sit on screen
+ * indefinitely — measured at 60 max red against Figma's 0.
+ */
+export const strip: Track = {
+  initial: { opacity: 0 },
+  animate: { opacity: [0, 1, 1, 1, 0, 0] },
+  transition: {
     opacity: {
       duration: DURATION_S,
       times: [0, 0.3277, 0.9044, 0.9045, 0.9985, 1],
