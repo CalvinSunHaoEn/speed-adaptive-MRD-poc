@@ -130,7 +130,22 @@ per-mode geometry and the swipe-direction mapping.
      SVG through that rotation lights the top of the chevron instead of its tip.
      Negating it cancels the rotation, which puts the falloff back where the
      export has it: down the centre line at the plateau, Figma reads
-     4/19/55/108/168/217 and this build 8/26/60/108/161/210.
+     4/19/55/108/166/217 and this build 9/27/60/108/161/209.
+   - *Edge softness.* Speed Up's `arrowFill` ends its filter chain with a 2px
+     foreground blur; this export has none, so the chevron keeps a hard alpha
+     edge — the `hardAlpha` step multiplies coverage by 127, quantising it to 0
+     or 1 — and its arms stair-step. Figma's own render of the frame steps the
+     same way; this is the one place the build deliberately departs from it, at
+     the designer's request, by appending the same 2px blur Speed Up carries.
+
+6. **The slow-down glow mask is repositioned.** Figma emits
+   `mask-position: -4px 10.103px` for the glow (`499:9457`), which lands its
+   chevron 11.1px below the one the Arrow draws and leaves a hard second
+   silhouette crossing the shape. The two exports frame their artwork
+   differently — Speed Up's `arrowFill` is 248 × 140.896 with the chevron inset
+   4px, the same framing as the mask, while slow down's is a bare 240 × 132.896
+   — so its fill box sits 4px inside the mask box and the mask has to move with
+   it. At `-4px -0.999px` the two layers share one edge, as they do in Speed Up.
 
 ## Reading the exported motion data
 

@@ -106,7 +106,14 @@ export const MODES: Record<ModeId, Mode> = {
       arrowFillInset: '2% 0 9.4% 0',
       ellipseMask: asset.sdEllipseMask,
       ellipseMaskSize: '248px 140.896px',
-      ellipseMaskPosition: '-4px 10.103px',
+      // Figma emits -4px 10.103px here, which lands the glow's chevron 11.1px
+      // below the one the Arrow draws and leaves a hard second silhouette
+      // crossing the shape. The two exports frame their artwork differently —
+      // Speed Up's arrowFill is 248x140.896 with the chevron inset 4px, the
+      // same framing as the mask, while Slow Down's is a bare 240x132.896 — so
+      // its fill box sits 4px inside the mask box, and the mask has to move
+      // with it. Aligned, the two layers share one edge, as they do in Speed Up.
+      ellipseMaskPosition: '-4px -0.999px',
       ellipseGlow: asset.sdEllipseGlow,
     },
   },

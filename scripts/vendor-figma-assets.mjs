@@ -60,17 +60,30 @@ for (const [name, id] of Object.entries(exports)) {
 //    offset as dy=-23 in the node's own unrotated space, so carrying the SVG
 //    through that rotation lands the lit edge along the top of the chevron
 //    instead of down at its tip. Negating it cancels the rotation.
+// 3. Edge softness. Speed Up's arrowFill ends its filter chain with a 2px
+//    foreground blur; this export has no blur at all, so the chevron's outline
+//    stays a hard alpha edge — the `hardAlpha` step multiplies coverage by 127,
+//    which quantises it to 0 or 1, and the result is a visible stair-step down
+//    the arms. Figma's own render of 499:9370 has the same stepping. The
+//    designer asked for Speed Up's treatment, so the same 2px blur is appended
+//    here. The filter region grows with it so the blur is not clipped.
 const SHADOW_RED = /<feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0"\/>/
 // #00F6FF: G = 246/255, B = 1.
 const SHADOW_CYAN =
   '<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0.964706 0 0 0 0 1 0 0 0 1 0"/>'
 const SHADOW_UP = /<feOffset dy="-23"\/>/
+const SHADOW_END = /<feBlend mode="normal" in2="shape" result="(effect1_innerShadow_[^"]*)"\/>/
+// Speed Up's own arrowFill, verbatim.
+const FOREGROUND_BLUR = '<feGaussianBlur stdDeviation="2" result="effect2_foregroundBlur"/>'
+const REGION = /<filter id="([^"]*)" x="0" y="-23" width="240" height="155\.896"/
 const sdArrow = join(dir, 'sdArrowFill.svg')
 if (existsSync(sdArrow)) {
   const src = await readFile(sdArrow, 'utf8')
   for (const [pattern, what] of [
     [SHADOW_RED, 'bakes its inner shadow red'],
     [SHADOW_UP, 'offsets that shadow by dy=-23'],
+    [SHADOW_END, 'ends its filter chain with the inner-shadow blend'],
+    [REGION, 'declares the filter region this derivation grows'],
   ]) {
     if (!pattern.test(src)) {
       console.error(`\n\u2717 sdArrowFill.svg no longer ${what}.`)
@@ -81,9 +94,13 @@ if (existsSync(sdArrow)) {
   }
   await writeFile(
     join(dir, 'sdArrowFill-runtime.svg'),
-    src.replace(SHADOW_RED, SHADOW_CYAN).replace(SHADOW_UP, '<feOffset dy="23"/>'),
+    src
+      .replace(SHADOW_RED, SHADOW_CYAN)
+      .replace(SHADOW_UP, '<feOffset dy="23"/>')
+      .replace(SHADOW_END, (_, id) => `<feBlend mode="normal" in2="shape" result="${id}"/>\n${FOREGROUND_BLUR}`)
+      .replace(REGION, (_, id) => `<filter id="${id}" x="-8" y="-31" width="256" height="171.896"`),
   )
-  console.log('\u2713 sdArrowFill-runtime.svg (cyan, shadow offset negated for the 180deg strip)')
+  console.log('\u2713 sdArrowFill-runtime.svg (cyan, shadow re-offset, 2px foreground blur)')
 }
 
 if (failed) {
