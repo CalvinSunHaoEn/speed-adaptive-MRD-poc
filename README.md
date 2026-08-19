@@ -27,14 +27,15 @@ npm run build
 npm run preview
 ```
 
-Pushing to `main` or to `claude/figma-meta-rayna-prototype-x6m6j7` deploys to
-GitHub Pages via `.github/workflows/deploy.yml`.
+Pushing to `main` deploys to GitHub Pages via
+`.github/workflows/deploy.yml`, and the prototype is live at
+**https://calvinsunhaoen.github.io/speed-adaptive-MRD-poc/** — open that in the
+glasses.
 
-**This needs enabling once, by hand:** repo *Settings → Pages → Source:
-**GitHub Actions***. Until it is, the `build` job passes and the `deploy` job
-fails immediately — it cannot start without the `github-pages` environment, so
-it produces no log. Once enabled, the prototype lives at
-`https://<owner>.github.io/speed-adaptive-MRD-poc/` — open that in the glasses.
+Only `main` deploys: GitHub Pages accepts deployments from the default branch
+only, so wiring other branches in would build fine and then fail at the deploy
+step every time. To preview a branch before merging, run it locally with
+`npm run dev` and open the printed Network URL on the glasses.
 
 ## Figma assets
 
