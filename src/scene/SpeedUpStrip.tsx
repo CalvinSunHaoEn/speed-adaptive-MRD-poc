@@ -10,11 +10,17 @@ import { asset } from '../assets/figma'
  * Both layers are alpha-masked by vectors exported from Figma: the chevron
  * masks a gradient fill, and the glow is clipped to an ellipse.
  *
- * The Figma reference emits `mask-clip: no-clip` here. That leaves whatever
- * falls outside the mask image unmasked — the chevron's fill is inset to -4px
- * horizontally, and its right edge leaked as a hard red rectangle that Figma's
- * own render does not show. The default `border-box` clip matches Figma, and
- * the artwork fits the 240 x 150 box exactly, so nothing intended is lost.
+ * The chevron is split across two elements because CSS applies `filter` before
+ * masking, while Figma blurs the shape after forming it:
+ *
+ *   outer — the rise and the 10px layer blur, unmasked, so the blur is free to
+ *           spread past the 240 x 150 box the way it does on the Figma canvas;
+ *   inner — the mask and the inner red glow, which take the chevron's shape.
+ *
+ * Keeping both on one element forces a choice between two artifacts Figma shows
+ * neither of: `mask-clip: no-clip` (as the reference emits) leaves the fill's
+ * -4px horizontal overhang unmasked and it leaks as a hard red rectangle, while
+ * the default `border-box` clip cuts the blur into a hard rectangle instead.
  */
 
 const masked = (src: string, size: string, position?: string): CSSProperties => ({
@@ -37,22 +43,17 @@ export function SpeedUpStrip({ playing }: { playing: boolean }) {
     >
       {/* 480:8633 — Arrow */}
       <motion.div
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          width: 240,
-          height: 150,
-          ...masked(asset.arrowMask, '240px 150px'),
-        }}
+        style={{ position: 'absolute', left: 0, top: 0, width: 240, height: 150 }}
         {...anim(arrow, playing)}
       >
-        <div style={{ position: 'absolute', inset: '-0.67% -1.67% 6.74% -1.67%' }}>
-          <img
-            alt=""
-            src={asset.arrowFill}
-            style={{ display: 'block', width: '100%', height: '100%', maxWidth: 'none' }}
-          />
+        <div style={{ position: 'absolute', inset: 0, ...masked(asset.arrowMask, '240px 150px') }}>
+          <div style={{ position: 'absolute', inset: '-0.67% -1.67% 6.74% -1.67%' }}>
+            <img
+              alt=""
+              src={asset.arrowFill}
+              style={{ display: 'block', width: '100%', height: '100%', maxWidth: 'none' }}
+            />
+          </div>
         </div>
       </motion.div>
 
@@ -67,7 +68,11 @@ export function SpeedUpStrip({ playing }: { playing: boolean }) {
         <motion.div
           style={{
             position: 'absolute',
-            left: 'calc(50% - 0.3px)',
+            // The reference emits `left: calc(50% - 0.3px)` with no centring
+            // translate, which parks the ellipse off to the right and blooms one
+            // arm of the chevron. Half its width recentres it; verified against
+            // Figma's render of the frame.
+            left: 'calc(50% - 0.3px - 79.7015px)',
             top: 40.77,
             width: 159.403,
             height: 162.475,

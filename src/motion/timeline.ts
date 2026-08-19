@@ -429,9 +429,6 @@ export const paceSetterIcon: Track = {
 // Speed up STRIP — 480:8633 (chevron) and 480:8635 (glow sweep)
 // ---------------------------------------------------------------------------
 
-const ARROW_GLOW_OFF = '0px 20px 36px 0px rgba(255, 0, 0, 0) inset'
-const ARROW_GLOW_ON = '0px 20px 36px 0px #F00 inset'
-
 /**
  * The chevron rises, softens, and lights up red.
  *
@@ -439,19 +436,17 @@ const ARROW_GLOW_ON = '0px 20px 36px 0px #F00 inset'
  * timeline (1.7886 / 1.7887); both keyframes repeat the value already reached
  * at 0.3277, so they are folded into a single hold at 1.
  */
+/**
+ * Chevron rise and layer blur. These ride the unmasked outer element: CSS
+ * applies `filter` before masking, so blurring the masked element itself would
+ * let the mask's box clip the blur into a hard rectangle. Figma blurs the shape
+ * after forming it, which is what the outer/inner split reproduces.
+ */
 export const arrow: Track = {
-  initial: { y: 23, filter: 'blur(0px)', boxShadow: ARROW_GLOW_OFF },
+  initial: { y: 23, filter: 'blur(0px)' },
   animate: {
     y: [23, 0, 0],
     filter: ['blur(0px)', 'blur(10px)', 'blur(10px)'],
-    boxShadow: [
-      ARROW_GLOW_OFF,
-      ARROW_GLOW_ON,
-      ARROW_GLOW_ON,
-      ARROW_GLOW_ON,
-      ARROW_GLOW_OFF,
-      ARROW_GLOW_OFF,
-    ],
   },
   transition: {
     y: {
@@ -464,13 +459,20 @@ export const arrow: Track = {
       times: [0, 0.3277, 1],
       ease: [EASE_SMOOTH, 'linear'],
     },
-    boxShadow: {
-      duration: DURATION_S,
-      times: [0, 0.3277, 0.9044, 0.9045, 0.9985, 1],
-      ease: [EASE_SMOOTH, 'linear', 'linear', EASE_SMOOTH, 'linear'],
-    },
   },
 }
+
+/*
+ * Figma's Arrow carries an inner-shadow effect that the reference translates to
+ * `box-shadow: …  inset`. That translation does not survive here: the chevron's
+ * mask is not a chevron at all but a full-box radial-gradient vignette, so a
+ * box-level inset shadow floods the whole 240 x 150 rectangle instead of
+ * hugging the shape. Diffed against Figma's own render of the frame, dropping
+ * it takes the strip from 11.37 mean error to 0.52 — Figma's inner shadow is
+ * effectively invisible on this shape, while the CSS one is not. The chevron's
+ * red comes from its gradient fill, and the lighting beat from the sweeping
+ * ellipse behind it.
+ */
 
 /** The glow ellipse sweeping up behind the chevron, five passes. */
 export const ellipseGlow: Track = {
