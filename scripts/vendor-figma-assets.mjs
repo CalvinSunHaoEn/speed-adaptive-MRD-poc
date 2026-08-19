@@ -10,8 +10,8 @@
  *
  *   node scripts/vendor-figma-assets.mjs
  */
-import { existsSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -47,27 +47,43 @@ for (const [name, id] of Object.entries(exports)) {
   console.log(`✓ ${name}.svg`)
 }
 
-// The Slow Down Arrow's export bakes its inner shadow red — the frame's stored
-// state, inherited from the Speed Up frame it was duplicated from. Its motion
-// track drives that shadow to #00F6FF, and cyan is what Figma renders once the
-// timeline runs: sampled off a frame export, the strip plateaus at R=0 G=21
-// B=23. So a cyan variant is derived here, leaving the original export
-// untouched and the derivation repeatable.
+// Two corrections to the Slow Down Arrow's export, both giving the layer as Figma
+// actually renders 499:9370 rather than as the file stores it.
+//
+// 1. Colour. The export bakes the inner shadow red, inherited from the Speed Up
+//    frame this one was duplicated from. Slow Down is cyan throughout — the
+//    designer's call, confirmed by the node's own motion track (#00F6FF) and by
+//    Figma's video render, in which no pixel of the frame is red-dominant. The
+//    red in the static canvas render is a preview bug.
+// 2. Shadow offset. Figma applies a shadow's offset in canvas space; it does not
+//    rotate with the layer. The strip is rotated 180deg, and the export bakes the
+//    offset as dy=-23 in the node's own unrotated space, so carrying the SVG
+//    through that rotation lands the lit edge along the top of the chevron
+//    instead of down at its tip. Negating it cancels the rotation.
 const SHADOW_RED = /<feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0"\/>/
 // #00F6FF: G = 246/255, B = 1.
 const SHADOW_CYAN =
   '<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0.964706 0 0 0 0 1 0 0 0 1 0"/>'
+const SHADOW_UP = /<feOffset dy="-23"\/>/
 const sdArrow = join(dir, 'sdArrowFill.svg')
 if (existsSync(sdArrow)) {
   const src = await readFile(sdArrow, 'utf8')
-  if (!SHADOW_RED.test(src)) {
-    console.error('\n✗ sdArrowFill.svg no longer bakes its inner shadow as red.')
-    console.error('  The cyan variant is what makes Slow Down read cyan — check the')
-    console.error('  export (the designer may have fixed it upstream) before regenerating.')
-    process.exit(1)
+  for (const [pattern, what] of [
+    [SHADOW_RED, 'bakes its inner shadow red'],
+    [SHADOW_UP, 'offsets that shadow by dy=-23'],
+  ]) {
+    if (!pattern.test(src)) {
+      console.error(`\n\u2717 sdArrowFill.svg no longer ${what}.`)
+      console.error('  The derived variant is what makes Slow Down render correctly —')
+      console.error('  re-check 499:9455 before regenerating.')
+      process.exit(1)
+    }
   }
-  await writeFile(join(dir, 'sdArrowFill-cyan.svg'), src.replace(SHADOW_RED, SHADOW_CYAN))
-  console.log('✓ sdArrowFill-cyan.svg (inner shadow recoloured to match the motion track)')
+  await writeFile(
+    join(dir, 'sdArrowFill-runtime.svg'),
+    src.replace(SHADOW_RED, SHADOW_CYAN).replace(SHADOW_UP, '<feOffset dy="23"/>'),
+  )
+  console.log('\u2713 sdArrowFill-runtime.svg (cyan, shadow offset negated for the 180deg strip)')
 }
 
 if (failed) {

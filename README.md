@@ -114,12 +114,23 @@ per-mode geometry and the swipe-direction mapping.
    envelope — drop it and the chevron never fades in or out. So the colour is
    baked into the exported SVG and the alpha is animated as `opacity` on the
    arrow group.
-5. **The slow-down chevron's colour.** `499:9375`'s SVG export bakes its inner
-   shadow red, a stale stored state; the motion track on the same node drives
-   `#00F6FF`, and Figma's own video render of the timeline is cyan.
-   `vendor-figma-assets.mjs` derives `sdArrowFill-cyan.svg` by rewriting that
-   one `feColorMatrix` to the cyan the track specifies, and fails loudly if the
-   red matrix it expects is ever absent.
+5. **The slow-down chevron is derived from its export, not used as shipped.**
+   `vendor-figma-assets.mjs` rewrites two things in `499:9455`'s SVG and fails
+   loudly if either stops matching, because both are cases where the stored file
+   disagrees with what Figma renders:
+
+   - *Colour.* The export bakes the inner shadow red, inherited from the Speed Up
+     frame this one was duplicated from. Slow down is cyan throughout — the
+     designer's call, and the node's own motion track (`#00F6FF`) and Figma's
+     video render agree: not one pixel of the rendered frame is red-dominant. The
+     red that Figma's static canvas render shows is a preview bug.
+   - *Shadow offset.* Figma applies a shadow's offset in canvas space — it does
+     not rotate with the layer. The strip is rotated 180°, and the export bakes
+     the offset as `dy=-23` in the node's own unrotated space, so carrying the
+     SVG through that rotation lights the top of the chevron instead of its tip.
+     Negating it cancels the rotation, which puts the falloff back where the
+     export has it: down the centre line at the plateau, Figma reads
+     4/19/55/108/168/217 and this build 8/26/60/108/161/210.
 
 ## Reading the exported motion data
 

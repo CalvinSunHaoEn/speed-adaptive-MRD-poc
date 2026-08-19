@@ -1,4 +1,4 @@
-import { asset, sdArrowFillCyan } from '../assets/figma'
+import { asset, sdArrowFillRuntime } from '../assets/figma'
 import type { ModeTracks } from '../motion/core'
 import { slowDown } from '../motion/slowDown'
 import { speedUp } from '../motion/speedUp'
@@ -8,9 +8,9 @@ import type { RigAssets } from './RunnerFigure'
  * The two frames the prototype can show, each bundling its keyframe data with
  * the artwork and the handful of geometry values that differ between them.
  *
- * Slow Down (Figma 499:9370) is Speed Up (480:8550) in a cyan colourway with
- * the strip rotated so the chevron points down. Everything else — the pill, the
- * runner rig, the stage — is the same construction driven by different data.
+ * Slow Down (Figma 499:9370) is Speed Up (480:8550) in cyan, with the strip
+ * rotated so the chevron points down. Everything else — the pill, the runner
+ * rig, the stage — is the same construction driven by different data.
  */
 
 export type ModeId = 'speedUp' | 'slowDown'
@@ -102,7 +102,7 @@ export const MODES: Record<ModeId, Mode> = {
     strip: {
       rotated: true,
       arrowMask: asset.sdArrowMask,
-      arrowFill: sdArrowFillCyan,
+      arrowFill: sdArrowFillRuntime,
       arrowFillInset: '2% 0 9.4% 0',
       ellipseMask: asset.sdEllipseMask,
       ellipseMaskSize: '248px 140.896px',
