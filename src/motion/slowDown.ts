@@ -148,27 +148,37 @@ const CYCLE_END = 0.3875
 const sdTimes = (name: keyof typeof RIG_TIMES) =>
   retime(RIG_TIMES[name], CYCLE_START, CYCLE_END)
 
+/*
+ * 499:9383's own translate track — Figma samples the same path more densely
+ * here than in Speed Up, so these are transcribed rather than retimed.
+ *
+ * Applied exactly as given, not as a delta from the first keyframe: the same
+ * mistake was made and corrected in Speed Up, where dropping the +8.52 / +7.202
+ * base pulls the figure up and left until its head clips out of the icon and
+ * only a mid-body fragment survives.
+ */
 const ROOT_X = [
-  8.52, 8.52, 8.566, 8.594, 8.606, 8.634, 8.65, 8.658, 8.659, 8.66, 8.658,
-  8.65, 8.634, 8.621, 8.606, 8.566, 8.52, 8.474, 8.46, 8.434, 8.406, 8.39,
-  8.382, 8.382, 8.38, 8.382, 8.39, 8.406, 8.409, 8.434, 8.474, 8.52, 8.52,
+  8.52, 8.52, 8.566, 8.569, 8.606, 8.634, 8.642, 8.65, 8.658, 8.66, 8.658,
+  8.65, 8.643, 8.634, 8.606, 8.569, 8.566, 8.52, 8.474, 8.459, 8.434, 8.406,
+  8.392, 8.39, 8.382, 8.38, 8.381, 8.382, 8.39, 8.402, 8.406, 8.434, 8.474,
+  8.482, 8.52, 8.52,
 ]
 const ROOT_Y = [
-  7.202, 7.202, 7.372, 7.521, 7.586, 7.748, 7.828, 7.836, 7.814, 7.798, 7.72,
-  7.6, 7.44, 7.36, 7.27, 7.166, 7.202, 7.372, 7.448, 7.586, 7.748, 7.828,
-  7.836, 7.827, 7.798, 7.72, 7.6, 7.44, 7.419, 7.27, 7.166, 7.202, 7.202,
+  7.202, 7.202, 7.372, 7.386, 7.586, 7.748, 7.79, 7.828, 7.836, 7.798, 7.72,
+  7.6, 7.527, 7.44, 7.27, 7.174, 7.166, 7.202, 7.372, 7.454, 7.586, 7.748,
+  7.816, 7.828, 7.836, 7.798, 7.774, 7.72, 7.6, 7.476, 7.44, 7.27, 7.166,
+  7.173, 7.202, 7.202,
+]
+const T_ROOT = [
+  0, 0.1557, 0.1653, 0.166, 0.175, 0.1846, 0.1897, 0.1942, 0.2038, 0.2134,
+  0.2231, 0.2327, 0.2371, 0.2423, 0.2519, 0.2608, 0.2615, 0.2712, 0.2808,
+  0.2845, 0.2904, 0.3, 0.3082, 0.3097, 0.3193, 0.3289, 0.3319, 0.3385,
+  0.3481, 0.3556, 0.3578, 0.3679, 0.3776, 0.3793, 0.3872, 1,
 ]
 
-const relative = (values: number[]) => values.map((v) => v - values[0])
-const rootTimes = sdTimes('T_D')
-const rootX = cycle(relative(ROOT_X), rootTimes, DURATION_S)
-const rootY = cycle(relative(ROOT_Y), rootTimes, DURATION_S)
+const rootX = cycle(ROOT_X, T_ROOT, DURATION_S)
+const rootY = cycle(ROOT_Y, T_ROOT, DURATION_S)
 
-/**
- * Applied as a delta from its own first keyframe, for the reason set out in
- * `speedUp.ts`: Figma reports this track in coordinates whose origin is not the
- * node's layout box, and taken raw it displaces the figure out of the icon.
- */
 export const rigRoot: Track = {
   initial: { x: rootX.values[0], y: rootY.values[0] },
   animate: { x: rootX.values, y: rootY.values },

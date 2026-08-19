@@ -49,7 +49,7 @@ step every time. To preview a branch before merging, run it locally with
 ## Figma assets
 
 Every visual is an export of a component authored in the Figma file — nothing is
-redrawn or substituted. All 22 SVGs are vendored into
+redrawn or substituted. All 43 SVGs — both modes' exports — are vendored into
 [`src/assets/figma/`](src/assets/figma/) and inlined into the bundle at build
 time, so the app has no runtime dependency on Figma.
 
@@ -75,11 +75,20 @@ against the `rotate` track applied to the same node.
   │  │  └ 480:8561               RunnerFigure.tsx × 2 (copy A + copy B)
   │  ├ 480:8627 / 8628           pace readouts, cross-fade + slide
   │  └ 480:8629                  ic_exercise_pace_setter
-  └ 480:8630  SpeedUpStrip.tsx     chevron + glow sweep
+  └ 480:8630  Strip.tsx            chevron + glow sweep
 ```
 
-All keyframe data lives in [`src/motion/timeline.ts`](src/motion/timeline.ts),
-transcribed from the Figma motion context and keyed by node id.
+Slow down (`499:9370`) has the same tree with its own node ids, so one set of
+components renders either mode.
+
+Keyframe data lives in [`src/motion/`](src/motion): the shared helpers and
+`Track` type in [`core.ts`](src/motion/core.ts), the runner rig's joint values
+in [`rig.ts`](src/motion/rig.ts) (both modes run the same stride over different
+windows), and one file per mode — [`speedUp.ts`](src/motion/speedUp.ts) and
+[`slowDown.ts`](src/motion/slowDown.ts) — each exporting the same `ModeTracks`
+shape, transcribed from the Figma motion context and keyed by node id.
+[`src/scene/modes.ts`](src/scene/modes.ts) pairs each timeline with its
+per-mode geometry and the swipe-direction mapping.
 
 ## Deviations from the Figma file
 
@@ -96,11 +105,21 @@ transcribed from the Figma motion context and keyed by node id.
    chevron's fill is inset to -4px horizontally, its right edge leaked as a hard
    red rectangle that Figma's own render does not show. The default `border-box`
    clip matches Figma.
-4. **No inner shadow on the chevron.** Figma's Arrow carries an inner-shadow
-   effect that the reference translates to `box-shadow: … inset`. The chevron's
-   mask is not a chevron but a full-box radial-gradient vignette, so a box-level
-   inset shadow floods the whole 240 × 150 rectangle. Dropping it takes the strip
-   from 11.37 mean error against Figma's render to 0.53.
+4. **The chevron's inner shadow is carried as opacity.** Figma's Arrow is a
+   VECTOR whose colour *is* its inner shadow, and the reference translates that
+   to `box-shadow: … inset`. Applied literally it floods the whole 240 × 150
+   rectangle, because the chevron's mask is not a chevron but a full-box
+   radial-gradient vignette (11.37 mean error against Figma's render, versus
+   0.53 without it). The shadow's *alpha*, though, is the layer's visibility
+   envelope — drop it and the chevron never fades in or out. So the colour is
+   baked into the exported SVG and the alpha is animated as `opacity` on the
+   arrow group.
+5. **The slow-down chevron's colour.** `499:9375`'s SVG export bakes its inner
+   shadow red, a stale stored state; the motion track on the same node drives
+   `#00F6FF`, and Figma's own video render of the timeline is cyan.
+   `vendor-figma-assets.mjs` derives `sdArrowFill-cyan.svg` by rewriting that
+   one `feColorMatrix` to the cyan the track specifies, and fails loudly if the
+   red matrix it expects is ever absent.
 
 ## Reading the exported motion data
 
@@ -113,12 +132,17 @@ fully transparent at t=0.
   into t=0.156..0.303 with holds at t=0 and t=1. Read literally the figure runs
   for 0.62s and freezes, and since it only fades in at 1.18s just 0.10s of its
   2.40s on screen would move. The window is seamless, so `cycle()` rescales it
-  into a standalone ~0.62s loop that repeats through the timeline.
+  into a standalone ~0.62s loop that repeats through the timeline. Slow down
+  packs the same stride into t=0.156..0.388 — same values, a wider window — so
+  `retime()` in [`rig.ts`](src/motion/rig.ts) resamples one shared set of joint
+  keyframes for both modes.
 - **The rig-root translate (480:8561) is a real translate.** Applied as given it
   puts the figure's box centre at (12.27, 9.70) in icon coordinates, against a
   measured (11.07, 9.71) in Figma — the vertical agreement is exact. Treating it
   as a delta from its own first keyframe instead leaves the head at y −6.97..−2.83,
-  clipped away entirely.
+  clipped away entirely. Slow down's root (499:9383) is the same track sampled
+  more densely, and needs the same reading — taken as a delta it strands a
+  two-limb fragment in the top-left of the icon.
 - **A CSS transform scales more than Figma's does.** The pill's 2× scale drags
   its corner radius and its glow's blur along with it, turning the 48 × 48 box
   into a circle with a doubled ring. Both are counter-scaled so they render at
