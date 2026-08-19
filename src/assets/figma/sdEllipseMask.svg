@@ -1,0 +1,12 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="248" height="140.896" viewBox="0 0 248 140.896" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="ArrowMask" filter="url(#filter0_f_0_17)">
+<path d="M14.1228 63.4043L114.123 6.60915C120.248 3.13028 127.752 3.13029 133.877 6.60915L233.877 63.4043C240.134 66.958 244 73.5992 244 80.7951V116.867C244 132.149 227.555 141.785 214.223 134.314L133.777 89.2363C127.703 85.833 120.297 85.833 114.223 89.2363L33.7766 134.314C20.445 141.785 4 132.149 4 116.867V80.7951C4 73.5992 7.8657 66.958 14.1228 63.4043Z" fill="#D9D9D9"/>
+</g>
+<defs>
+<filter id="filter0_f_0_17" x="0" y="0" width="248" height="140.896" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="2" result="effect1_foregroundBlur_0_17"/>
+</filter>
+</defs>
+</svg>

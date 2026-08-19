@@ -43,3 +43,11 @@ export const asset = Object.fromEntries(
 export const assetsAreVendored = Object.keys(remote).every(
   (name) => `./${name}.svg` in local,
 )
+
+/**
+ * The Slow Down Arrow as Figma renders it rather than as the file stores it:
+ * the inner shadow recoloured cyan, and its offset negated so it survives the
+ * strip's 180deg rotation and lands at the chevron's tip. Both derivations, and
+ * why each is needed, are in `scripts/vendor-figma-assets.mjs`.
+ */
+export { default as sdArrowFillRuntime } from './sdArrowFill-runtime.svg?url'

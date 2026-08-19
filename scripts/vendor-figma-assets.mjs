@@ -11,6 +11,7 @@
  *   node scripts/vendor-figma-assets.mjs
  */
 import { spawnSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -44,6 +45,62 @@ for (const [name, id] of Object.entries(exports)) {
   }
   await writeFile(join(dir, `${name}.svg`), Buffer.from(await response.arrayBuffer()))
   console.log(`✓ ${name}.svg`)
+}
+
+// Two corrections to the Slow Down Arrow's export, both giving the layer as Figma
+// actually renders 499:9370 rather than as the file stores it.
+//
+// 1. Colour. The export bakes the inner shadow red, inherited from the Speed Up
+//    frame this one was duplicated from. Slow Down is cyan throughout — the
+//    designer's call, confirmed by the node's own motion track (#00F6FF) and by
+//    Figma's video render, in which no pixel of the frame is red-dominant. The
+//    red in the static canvas render is a preview bug.
+// 2. Shadow offset. Figma applies a shadow's offset in canvas space; it does not
+//    rotate with the layer. The strip is rotated 180deg, and the export bakes the
+//    offset as dy=-23 in the node's own unrotated space, so carrying the SVG
+//    through that rotation lands the lit edge along the top of the chevron
+//    instead of down at its tip. Negating it cancels the rotation.
+// 3. Edge softness. Speed Up's arrowFill ends its filter chain with a 2px
+//    foreground blur; this export has no blur at all, so the chevron's outline
+//    stays a hard alpha edge — the `hardAlpha` step multiplies coverage by 127,
+//    which quantises it to 0 or 1, and the result is a visible stair-step down
+//    the arms. Figma's own render of 499:9370 has the same stepping. The
+//    designer asked for Speed Up's treatment, so the same 2px blur is appended
+//    here. The filter region grows with it so the blur is not clipped.
+const SHADOW_RED = /<feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0"\/>/
+// #00F6FF: G = 246/255, B = 1.
+const SHADOW_CYAN =
+  '<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0.964706 0 0 0 0 1 0 0 0 1 0"/>'
+const SHADOW_UP = /<feOffset dy="-23"\/>/
+const SHADOW_END = /<feBlend mode="normal" in2="shape" result="(effect1_innerShadow_[^"]*)"\/>/
+// Speed Up's own arrowFill, verbatim.
+const FOREGROUND_BLUR = '<feGaussianBlur stdDeviation="2" result="effect2_foregroundBlur"/>'
+const REGION = /<filter id="([^"]*)" x="0" y="-23" width="240" height="155\.896"/
+const sdArrow = join(dir, 'sdArrowFill.svg')
+if (existsSync(sdArrow)) {
+  const src = await readFile(sdArrow, 'utf8')
+  for (const [pattern, what] of [
+    [SHADOW_RED, 'bakes its inner shadow red'],
+    [SHADOW_UP, 'offsets that shadow by dy=-23'],
+    [SHADOW_END, 'ends its filter chain with the inner-shadow blend'],
+    [REGION, 'declares the filter region this derivation grows'],
+  ]) {
+    if (!pattern.test(src)) {
+      console.error(`\n\u2717 sdArrowFill.svg no longer ${what}.`)
+      console.error('  The derived variant is what makes Slow Down render correctly —')
+      console.error('  re-check 499:9455 before regenerating.')
+      process.exit(1)
+    }
+  }
+  await writeFile(
+    join(dir, 'sdArrowFill-runtime.svg'),
+    src
+      .replace(SHADOW_RED, SHADOW_CYAN)
+      .replace(SHADOW_UP, '<feOffset dy="23"/>')
+      .replace(SHADOW_END, (_, id) => `<feBlend mode="normal" in2="shape" result="${id}"/>\n${FOREGROUND_BLUR}`)
+      .replace(REGION, (_, id) => `<filter id="${id}" x="-8" y="-31" width="256" height="171.896"`),
+  )
+  console.log('\u2713 sdArrowFill-runtime.svg (cyan, shadow re-offset, 2px foreground blur)')
 }
 
 if (failed) {

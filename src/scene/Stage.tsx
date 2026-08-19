@@ -1,5 +1,6 @@
 import { SpeedIndicator } from './SpeedIndicator'
-import { SpeedUpStrip } from './SpeedUpStrip'
+import type { Mode } from './modes'
+import { Strip } from './Strip'
 
 /**
  * Frame 480:8550 "Speed up Icon+STRIP META POC" — 600 x 600, the native panel
@@ -9,7 +10,7 @@ import { SpeedUpStrip } from './SpeedUpStrip'
  * in the 4.221s cohort at exactly t=0, which keeps all 28 animated nodes in
  * sync on every tap.
  */
-export function Stage({ playing }: { playing: boolean }) {
+export function Stage({ mode, playing }: { mode: Mode; playing: boolean }) {
   return (
     <div
       data-node-id="480:8550"
@@ -34,8 +35,8 @@ export function Stage({ playing }: { playing: boolean }) {
           overflow: 'hidden',
         }}
       >
-        <SpeedIndicator playing={playing} />
-        <SpeedUpStrip playing={playing} />
+        <SpeedIndicator mode={mode} playing={playing} />
+        <Strip mode={mode} playing={playing} />
       </div>
     </div>
   )

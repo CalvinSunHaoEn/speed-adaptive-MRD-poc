@@ -1,39 +1,29 @@
 /**
- * Keyframe data for Figma frame 480:8550 "Speed up Icon+STRIP META POC".
+ * Speed Up — keyframe data for Figma frame 480:8550
+ * "Speed up Icon+STRIP META POC".
  *
  * Transcribed verbatim from the Figma MCP motion context (one timeline cohort,
- * 4.221s, 28 animated nodes) with a single deliberate change: Figma's
+ * 4.221s, 28 animated nodes) with one deliberate change: Figma's
  * `repeat: Infinity` is dropped, because this prototype plays once per neural
  * band tap and holds its last frame.
  *
  * Track names carry their Figma node id so every value is traceable back to
- * the file.
+ * the file. Shared helpers live in `core.ts`.
  */
 
-import type { Target, Transition, TargetAndTransition } from 'motion/react'
+import {
+  CYCLE_REPEATS,
+  EASE_INOUT,
+  EASE_SMOOTH,
+  cycle,
+  joint,
+  type ModeTracks,
+  type RigTracks,
+  type Track,
+} from './core'
+import { RIG_PIVOTS, RIG_VALUES } from './rig'
 
-/** Figma cohort duration for 480:8550. */
-export const DURATION_S = 4.221
-
-export type Track = {
-  initial: Target
-  animate: TargetAndTransition
-  transition: Transition
-  /** Figma's rotation/scale pivot, applied by the component as CSS. */
-  transformOrigin?: string
-}
-
-/** Motion props for a track, honouring the idle (pre-first-tap) state. */
-export function anim(track: Track, playing: boolean) {
-  return {
-    initial: track.initial,
-    animate: playing ? track.animate : track.initial,
-    transition: playing ? track.transition : { duration: 0 },
-  }
-}
-
-const EASE_INOUT = [0.25, 0.1, 0.25, 1] as const
-const EASE_SMOOTH = [0.5, 0, 0.5, 1] as const
+const DURATION_S = 4.221
 
 const GLOW_WHITE =
   '0px 0px 4px 0px #FFF inset, 0px 0px 12px 0px rgba(255, 255, 255, 0.5) inset'
@@ -44,12 +34,6 @@ const GLOW_WHITE =
  * scaled, matching the tight ring Figma draws instead of a doubled, diffuse one.
  */
 const GLOW_RED = '0px 0px 2px 0px #F00 inset, 0px 0px 6px 0px #F00 inset'
-
-// ---------------------------------------------------------------------------
-// Shared `times` arrays for the runner rig. Figma emits per-joint arrays that
-// differ from one another in the fourth decimal; they are kept distinct rather
-// than rounded together.
-// ---------------------------------------------------------------------------
 
 // 480:8561 (rig root translation)
 const T_ROOT = [
@@ -98,55 +82,6 @@ const T_F = [
   0.2408, 0.2469, 0.253, 0.2591, 0.2606, 0.2652, 0.2713, 0.2774, 0.2835,
   0.2843, 0.2888, 0.2949, 0.301, 1,
 ]
-
-/**
- * The rig's exported keyframes are one run cycle packed into a dense window
- * (about t=0.156..0.303), padded by a hold at t=0 and another at t=1. Read
- * literally that makes the figure run for 0.62s and then freeze — and since the
- * runner only fades in at 1.18s, just 0.10s of its 2.40s on screen would show
- * any movement at all. Figma runs it continuously the whole time it is visible:
- * the export captures a single iteration of a nested looping animation, and the
- * window is seamless (its first and last values are identical), so it is meant
- * to repeat.
- *
- * `cycle` drops the two padding holds and rescales the window into a standalone
- * ~0.62s loop. It repeats enough times to outlast the 4.221s timeline and then
- * stops, so nothing keeps animating under an invisible layer.
- */
-const CYCLE_REPEATS = 6
-
-function cycle(values: number[], times: number[]) {
-  const first = 1
-  const last = times.length - 2
-  const span = times[last] - times[first]
-  return {
-    values: values.slice(first, last + 1),
-    times: times.slice(first, last + 1).map((t) => (t - times[first]) / span),
-    duration: span * DURATION_S,
-    // Hold the rest pose until the point in the timeline where Figma starts the
-    // cycle, so the strides land on the same beat as the source.
-    delay: times[first] * DURATION_S,
-  }
-}
-
-/** A joint of the runner rig: a looping linear `rotate` cycle about a pivot. */
-function joint(transformOrigin: string, values: number[], times: number[]): Track {
-  const c = cycle(values, times)
-  return {
-    transformOrigin,
-    initial: { rotate: c.values[0] },
-    animate: { rotate: c.values },
-    transition: {
-      rotate: {
-        duration: c.duration,
-        times: c.times,
-        ease: 'linear',
-        repeat: CYCLE_REPEATS,
-        delay: c.delay,
-      },
-    },
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Speed Indicator pill — 480:8558
@@ -286,8 +221,8 @@ const ROOT_Y = [
   7.836, 7.827, 7.798, 7.72, 7.6, 7.44, 7.419, 7.27, 7.166, 7.202, 7.202,
 ]
 
-const rootX = cycle(ROOT_X, T_ROOT)
-const rootY = cycle(ROOT_Y, T_ROOT)
+const rootX = cycle(ROOT_X, T_ROOT, DURATION_S)
+const rootY = cycle(ROOT_Y, T_ROOT, DURATION_S)
 
 export const rigRoot: Track = {
   initial: { x: rootX.values[0], y: rootY.values[0] },
@@ -306,141 +241,32 @@ export const rigRoot: Track = {
 // component renders both from these two track sets.
 // ---------------------------------------------------------------------------
 
-export type RigTracks = {
-  upper1: Track
-  mid1: Track
-  end1: Track
-  upper2: Track
-  end2: Track
-  upper3: Track
-  mid3: Track
-  end3: Track
-  upper4: Track
-  end4: Track
-}
-
 /** Copy A — Figma nodes 480:8563 / 8566 / 8569 / 8572 / 8575 / 8580 / 8583 / 8586 / 8589 / 8592. */
 export const rigA: RigTracks = {
-  upper1: joint('50% 10.032%', [
-    -4, -4, -14.73, -19.64, -23.67, -29.94, -33.66, -35.47, -35.701, -36,
-    -35.47, -33.66, -29.94, -27.918, -23.67, -14.73, -4, 6.73, 8.599, 15.67,
-    21.94, 25.66, 27.47, 27.521, 28, 27.47, 25.66, 22.005, 21.94, 15.67, 6.73,
-    -4, -4,
-  ], T_B),
-  mid1: joint('50% 15.196%', [
-    63.87, 63.87, 58.91, 56.178, 52.15, 45.03, 38.6, 33.16, 31.802, 28.49,
-    24.16, 19.92, 15.92, 15.388, 12.92, 12.05, 14.13, 19.09, 19.523, 25.85,
-    32.97, 39.4, 44.572, 44.84, 49.51, 53.84, 58.08, 61.43, 62.08, 65.08,
-    65.95, 63.87, 63.87,
-  ], T_C),
-  end1: joint('50% 27.723%', [
-    -70, -70, -74.69, -76.274, -78.61, -81.35, -82.97, -83.77, -83.837, -84,
-    -83.77, -82.97, -81.35, -80.864, -78.61, -74.69, -70, -65.31, -65.059,
-    -61.39, -58.65, -57.03, -56.269, -56.23, -56, -56.23, -57.03, -58.387,
-    -58.65, -61.39, -65.31, -70, -70,
-  ], T_C),
-  upper2: joint('50% 13.208%', [
-    30, 30, 21.96, 18.269, 15.24, 10.54, 7.76, 6.4, 6.226, 6, 6.4, 7.76,
-    10.54, 12.056, 15.24, 21.96, 30, 38.04, 39.445, 44.76, 49.46, 52.24, 53.6,
-    53.638, 54, 53.6, 52.24, 49.509, 49.46, 44.76, 38.04, 30, 30,
-  ], T_B),
-  end2: joint('50% 20.896%', [
-    -79.17, -79.17, -76.52, -76.342, -76.08, -77.39, -79.66, -82.33, -83.162,
-    -85.19, -88.41, -92.31, -97.09, -98.073, -102.63, -108.23, -112.83,
-    -115.48, -115.508, -115.92, -114.61, -112.34, -109.801, -109.67, -106.81,
-    -103.59, -99.69, -95.687, -94.91, -89.37, -83.77, -79.17, -79.17,
-  ], T_C),
-  upper3: joint('50% 10.032%', [
-    -4, -4, 6.73, 12.959, 15.67, 21.94, 25.66, 27.47, 27.779, 28, 27.47,
-    25.66, 21.94, 18.993, 15.67, 6.73, -4, -14.73, -17.919, -23.67, -29.94,
-    -33.66, -35.47, -35.599, -36, -35.47, -33.66, -29.94, -29.125, -23.67,
-    -14.73, -4, -4,
-  ], T_D),
-  mid3: joint('50% 15.196%', [
-    14.13, 14.13, 19.09, 22.803, 25.85, 32.97, 39.4, 44.84, 46.876, 49.51,
-    53.84, 58.08, 62.08, 63.047, 65.08, 65.95, 63.87, 58.91, 57.497, 52.15,
-    45.03, 38.6, 33.16, 32.712, 28.49, 24.16, 19.92, 15.99, 15.92, 12.92,
-    12.05, 14.13, 14.13,
-  ], T_B),
-  end3: joint('50% 27.723%', [
-    -70, -70, -65.31, -63.157, -61.39, -58.65, -57.03, -56.23, -56.13, -56,
-    -56.23, -57.03, -58.65, -59.534, -61.39, -65.31, -70, -74.69, -75.51,
-    -78.61, -81.35, -82.97, -83.77, -83.792, -84, -83.77, -82.97, -81.378,
-    -81.35, -78.61, -74.69, -70, -70,
-  ], T_B),
-  upper4: joint('50% 13.208%', [
-    30, 30, 38.04, 42.722, 44.76, 49.46, 52.24, 53.6, 53.833, 54, 53.6, 52.24,
-    49.46, 47.251, 44.76, 38.04, 30, 21.96, 19.563, 15.24, 10.54, 7.76, 6.4,
-    6.303, 6, 6.4, 7.76, 10.54, 11.151, 15.24, 21.96, 30, 30,
-  ], T_D),
-  end4: joint('50% 20.896%', [
-    -112.83, -112.83, -115.48, -115.723, -115.92, -114.61, -112.34, -109.67,
-    -108.416, -106.81, -103.59, -99.69, -94.91, -93.11, -89.37, -83.77,
-    -79.17, -76.52, -76.427, -76.08, -77.39, -79.66, -82.33, -82.611, -85.19,
-    -88.41, -92.31, -97.018, -97.09, -102.63, -108.23, -112.83, -112.83,
-  ], T_E),
+  upper1: joint(RIG_PIVOTS.upper1, RIG_VALUES.A.upper1, T_B, DURATION_S),
+  mid1: joint(RIG_PIVOTS.mid1, RIG_VALUES.A.mid1, T_C, DURATION_S),
+  end1: joint(RIG_PIVOTS.end1, RIG_VALUES.A.end1, T_C, DURATION_S),
+  upper2: joint(RIG_PIVOTS.upper2, RIG_VALUES.A.upper2, T_B, DURATION_S),
+  end2: joint(RIG_PIVOTS.end2, RIG_VALUES.A.end2, T_C, DURATION_S),
+  upper3: joint(RIG_PIVOTS.upper3, RIG_VALUES.A.upper3, T_D, DURATION_S),
+  mid3: joint(RIG_PIVOTS.mid3, RIG_VALUES.A.mid3, T_B, DURATION_S),
+  end3: joint(RIG_PIVOTS.end3, RIG_VALUES.A.end3, T_B, DURATION_S),
+  upper4: joint(RIG_PIVOTS.upper4, RIG_VALUES.A.upper4, T_D, DURATION_S),
+  end4: joint(RIG_PIVOTS.end4, RIG_VALUES.A.end4, T_E, DURATION_S),
 }
 
 /** Copy B — Figma nodes 480:8596 / 8599 / 8602 / 8605 / 8608 / 8613 / 8616 / 8619 / 8622 / 8625. */
 export const rigB: RigTracks = {
-  upper1: joint('50% 10.032%', [
-    -4, -4, -14.73, -20.959, -23.67, -29.94, -33.66, -35.47, -35.779, -36,
-    -35.47, -33.66, -29.94, -26.993, -23.67, -14.73, -4, 6.73, 9.919, 15.67,
-    21.94, 25.66, 27.47, 27.599, 28, 27.47, 25.66, 21.94, 21.125, 15.67, 6.73,
-    -4, -4,
-  ], T_D),
-  mid1: joint('50% 15.196%', [
-    63.87, 63.87, 58.91, 54.2, 52.15, 45.03, 38.6, 33.16, 30.436, 28.49,
-    24.16, 19.92, 15.92, 14.51, 12.92, 12.05, 14.13, 19.09, 21.501, 25.85,
-    32.97, 39.4, 44.84, 45.977, 49.51, 53.84, 58.08, 62.08, 62.47, 65.08,
-    65.95, 63.87, 63.87,
-  ], T_D),
-  end1: joint('50% 27.723%', [
-    -70, -70, -74.69, -77.421, -78.61, -81.35, -82.97, -83.77, -83.904, -84,
-    -83.77, -82.97, -81.35, -80.062, -78.61, -74.69, -70, -65.31, -63.912,
-    -61.39, -58.65, -57.03, -56.23, -56.174, -56, -56.23, -57.03, -58.65,
-    -59.006, -61.39, -65.31, -70, -70,
-  ], T_D),
-  upper2: joint('50% 13.208%', [
-    30, 30, 21.96, 17.278, 15.24, 10.54, 7.76, 6.4, 6.167, 6, 6.4, 7.76,
-    10.54, 12.749, 15.24, 21.96, 30, 38.04, 40.437, 44.76, 49.46, 52.24, 53.6,
-    53.697, 54, 53.6, 52.24, 49.46, 48.849, 44.76, 38.04, 30, 30,
-  ], T_D),
-  end2: joint('50% 20.896%', [
-    -79.17, -79.17, -76.52, -76.213, -76.08, -77.39, -79.66, -82.33, -83.999,
-    -85.19, -88.41, -92.31, -97.09, -99.694, -102.63, -108.23, -112.83,
-    -115.48, -115.637, -115.92, -114.61, -112.34, -109.67, -108.974, -106.81,
-    -103.59, -99.69, -94.91, -94.19, -89.37, -83.77, -79.17, -79.17,
-  ], T_D),
-  upper3: joint('50% 10.032%', [
-    -4, -4, 6.73, 12.96, 15.67, 21.94, 25.66, 27.47, 27.779, 28, 27.47, 25.66,
-    21.94, 18.992, 15.67, 6.73, -4, -14.73, -17.92, -23.67, -29.94, -33.66,
-    -35.47, -35.599, -36, -35.47, -33.66, -29.94, -29.005, -23.67, -14.73, -4,
-    -4,
-  ], T_F),
-  mid3: joint('50% 15.196%', [
-    14.13, 14.13, 19.09, 23.801, 25.85, 32.97, 39.4, 44.84, 47.565, 49.51,
-    53.84, 58.08, 62.08, 63.49, 65.08, 65.95, 63.87, 58.91, 56.498, 52.15,
-    45.03, 38.6, 33.16, 32.023, 28.49, 24.16, 19.92, 15.92, 15.473, 12.92,
-    12.05, 14.13, 14.13,
-  ], T_F),
-  end3: joint('50% 27.723%', [
-    -70, -70, -65.31, -62.579, -61.39, -58.65, -57.03, -56.23, -56.096, -56,
-    -56.23, -57.03, -58.65, -59.938, -61.39, -65.31, -70, -74.69, -76.088,
-    -78.61, -81.35, -82.97, -83.77, -83.826, -84, -83.77, -82.97, -81.35,
-    -80.994, -78.61, -74.69, -70, -70,
-  ], T_D),
-  upper4: joint('50% 13.208%', [
-    30, 30, 38.04, 42.723, 44.76, 49.46, 52.24, 53.6, 53.833, 54, 53.6, 52.24,
-    49.46, 47.25, 44.76, 38.04, 30, 21.96, 19.562, 15.24, 10.54, 7.76, 6.4,
-    6.303, 6, 6.4, 7.76, 10.54, 11.152, 15.24, 21.96, 30, 30,
-  ], T_F),
-  end4: joint('50% 20.896%', [
-    -112.83, -112.83, -115.48, -115.787, -115.92, -114.61, -112.34, -109.67,
-    -108.001, -106.81, -103.59, -99.69, -94.91, -92.305, -89.37, -83.77,
-    -79.17, -76.52, -76.363, -76.08, -77.39, -79.66, -82.33, -83.027, -85.19,
-    -88.41, -92.31, -97.09, -97.811, -102.63, -108.23, -112.83, -112.83,
-  ], T_F),
+  upper1: joint(RIG_PIVOTS.upper1, RIG_VALUES.B.upper1, T_D, DURATION_S),
+  mid1: joint(RIG_PIVOTS.mid1, RIG_VALUES.B.mid1, T_D, DURATION_S),
+  end1: joint(RIG_PIVOTS.end1, RIG_VALUES.B.end1, T_D, DURATION_S),
+  upper2: joint(RIG_PIVOTS.upper2, RIG_VALUES.B.upper2, T_D, DURATION_S),
+  end2: joint(RIG_PIVOTS.end2, RIG_VALUES.B.end2, T_D, DURATION_S),
+  upper3: joint(RIG_PIVOTS.upper3, RIG_VALUES.B.upper3, T_F, DURATION_S),
+  mid3: joint(RIG_PIVOTS.mid3, RIG_VALUES.B.mid3, T_F, DURATION_S),
+  end3: joint(RIG_PIVOTS.end3, RIG_VALUES.B.end3, T_D, DURATION_S),
+  upper4: joint(RIG_PIVOTS.upper4, RIG_VALUES.B.upper4, T_F, DURATION_S),
+  end4: joint(RIG_PIVOTS.end4, RIG_VALUES.B.end4, T_F, DURATION_S),
 }
 
 // ---------------------------------------------------------------------------
@@ -602,4 +428,21 @@ export const ellipseGlow: Track = {
       ease: 'linear',
     },
   },
+}
+
+/** Everything the scene needs for Speed Up. */
+export const speedUp: ModeTracks = {
+  durationS: DURATION_S,
+  speedIndicator,
+  speedIndicatorGlow,
+  runnerIcon,
+  rigRoot,
+  rigA,
+  rigB,
+  paceCurrent,
+  paceTarget,
+  paceSetterIcon,
+  arrow,
+  ellipseGlow,
+  strip,
 }
