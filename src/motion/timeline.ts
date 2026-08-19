@@ -509,10 +509,11 @@ export const paceSetterIcon: Track = {
  * after forming it, which is what the outer/inner split reproduces.
  */
 export const arrow: Track = {
-  initial: { y: 23, filter: 'blur(0px)' },
+  initial: { y: 23, filter: 'blur(0px)', opacity: 0 },
   animate: {
     y: [23, 0, 0],
     filter: ['blur(0px)', 'blur(10px)', 'blur(10px)'],
+    opacity: [0, 1, 1, 1, 0, 0],
   },
   transition: {
     y: {
@@ -525,19 +526,37 @@ export const arrow: Track = {
       times: [0, 0.3277, 1],
       ease: [EASE_SMOOTH, 'linear'],
     },
+    // Figma's Arrow is a vector whose red IS its inner shadow, so the shadow's
+    // alpha doubles as the layer's visibility envelope — see the note above.
+    opacity: {
+      duration: DURATION_S,
+      times: [0, 0.3277, 0.9044, 0.9045, 0.9985, 1],
+      ease: [EASE_SMOOTH, 'linear', 'linear', EASE_SMOOTH, 'linear'],
+    },
   },
 }
 
 /*
- * Figma's Arrow carries an inner-shadow effect that the reference translates to
- * `box-shadow: …  inset`. That translation does not survive here: the chevron's
- * mask is not a chevron at all but a full-box radial-gradient vignette, so a
- * box-level inset shadow floods the whole 240 x 150 rectangle instead of
- * hugging the shape. Diffed against Figma's own render of the frame, dropping
- * it takes the strip from 11.37 mean error to 0.52 — Figma's inner shadow is
- * effectively invisible on this shape, while the CSS one is not. The chevron's
- * red comes from its gradient fill, and the lighting beat from the sweeping
- * ellipse behind it.
+ * On the Arrow's `boxShadow` track.
+ *
+ * Figma's Arrow is a VECTOR whose red comes from an inner-shadow effect, which
+ * the reference translates to `box-shadow: … inset`. Applied literally that
+ * floods the layer: the chevron's mask is not a chevron but a full-box
+ * radial-gradient vignette, so a box-level inset shadow fills the whole
+ * 240 x 150 rectangle instead of hugging the shape.
+ *
+ * Its alpha, however, is the arrow's visibility envelope — transparent at t=0,
+ * red across the middle, transparent again by the end. Sampling mean red over
+ * the strip in a frame export of the Figma timeline confirms it: 2 at t=0,
+ * rising to a plateau of 23 by ~1.2s, back to 1 at t=4.2s, with the ramps
+ * landing exactly on this track's times. So the alpha is carried as `opacity`
+ * on the arrow layer, and the shadow's colour is left to the gradient fill.
+ *
+ * The earlier version of this note claimed the effect was "effectively
+ * invisible" and dropped it outright. That was measured against Figma's static
+ * canvas render, which happens to sit at a moment where the shadow is off — the
+ * same trap that hid the runner bug. A static render cannot decide a track that
+ * exists to vary over time.
  */
 
 /** The glow ellipse sweeping up behind the chevron, five passes. */
