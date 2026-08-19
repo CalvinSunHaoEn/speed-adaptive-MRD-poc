@@ -8,8 +8,13 @@ import { asset } from '../assets/figma'
  * display, plus the ellipse glow that sweeps up behind it five times.
  *
  * Both layers are alpha-masked by vectors exported from Figma: the chevron
- * masks a gradient fill, and the glow is clipped to an ellipse. `mask-clip:
- * no-clip` keeps the chevron's 10px blur from being cut off at its own box.
+ * masks a gradient fill, and the glow is clipped to an ellipse.
+ *
+ * The Figma reference emits `mask-clip: no-clip` here. That leaves whatever
+ * falls outside the mask image unmasked — the chevron's fill is inset to -4px
+ * horizontally, and its right edge leaked as a hard red rectangle that Figma's
+ * own render does not show. The default `border-box` clip matches Figma, and
+ * the artwork fits the 240 x 150 box exactly, so nothing intended is lost.
  */
 
 const masked = (src: string, size: string, position?: string): CSSProperties => ({
@@ -17,7 +22,6 @@ const masked = (src: string, size: string, position?: string): CSSProperties => 
   WebkitMaskImage: `url("${src}")`,
   maskMode: 'alpha',
   maskComposite: 'intersect',
-  maskClip: 'no-clip',
   maskRepeat: 'no-repeat',
   WebkitMaskRepeat: 'no-repeat',
   maskSize: size,

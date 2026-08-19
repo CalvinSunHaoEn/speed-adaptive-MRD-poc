@@ -8,6 +8,7 @@ import {
   speedIndicator,
   speedIndicatorGlow,
 } from '../motion/timeline'
+import { FitText } from './FitText'
 import { RunnerIcon } from './RunnerIcon'
 import { asset } from '../assets/figma'
 
@@ -21,10 +22,9 @@ import { asset } from '../assets/figma'
  */
 
 /**
- * Figma sets these in `One UI Sans GUI SemiBold`, a Samsung typeface with no
- * web distribution. The widths are pinned to the values Figma measured so the
- * layout — and the -74.5px slide of the target pace — stays exact under the
- * fallback stack.
+ * Figma sets these in `One UI Sans GUI SemiBold`. The box widths are pinned to
+ * the values Figma measured, and `FitText` condenses the glyphs to fit them, so
+ * the layout holds under whatever font the device actually has.
  */
 const readout: CSSProperties = {
   position: 'relative',
@@ -82,12 +82,16 @@ export function SpeedIndicator({ playing }: { playing: boolean }) {
 
       {/* 480:8627 */}
       <motion.div style={{ ...readout, width: 66 }} {...anim(paceCurrent, playing)}>
-        <p style={line}>8&rsquo;10&rdquo;/km</p>
+        <FitText width={66} style={line}>
+          8&rsquo;10&rdquo;/km
+        </FitText>
       </motion.div>
 
       {/* 480:8628 */}
       <motion.div style={{ ...readout, width: 67 }} {...anim(paceTarget, playing)}>
-        <p style={line}>7&rsquo;30&rdquo;/km</p>
+        <FitText width={67} style={line}>
+          7&rsquo;30&rdquo;/km
+        </FitText>
       </motion.div>
 
       {/* 480:8629 — ic_exercise_pace_setter */}

@@ -32,28 +32,24 @@ Pushing to `claude/figma-meta-rayna-prototype-x6m6j7` deploys to GitHub Pages vi
 Pages → Source: **GitHub Actions***. After that the prototype lives at
 `https://<owner>.github.io/speed-adaptive-MRD-poc/` — open that in the glasses.
 
-## Figma assets — action required
+## Figma assets
 
-Every visual is an export of a component authored in the Figma file; nothing is
-redrawn or substituted. The exports are listed in
-[`src/assets/figma/exports.json`](src/assets/figma/exports.json).
+Every visual is an export of a component authored in the Figma file — nothing is
+redrawn or substituted. All 22 SVGs are vendored into
+[`src/assets/figma/`](src/assets/figma/) and inlined into the bundle at build
+time, so the app has no runtime dependency on Figma.
 
-They currently resolve to **Figma's temporary MCP export URLs, which expire
-about 7 days after they were generated.** To make the build self-contained:
+To refresh them after the design changes, regenerate the export ids from the
+Figma file into [`exports.json`](src/assets/figma/exports.json) and re-run:
 
 ```bash
 node scripts/vendor-figma-assets.mjs
-git add src/assets/figma/*.svg && git commit -m "Vendor Figma SVG exports"
 ```
 
-The script writes the SVGs into `src/assets/figma/`, where
-[`index.ts`](src/assets/figma/index.ts) picks them up automatically in
-preference to the remote URLs. If it reports HTTP errors the ids have expired
-and need regenerating from the Figma file.
-
-> The environment this prototype was built in blocks outbound traffic to
-> `www.figma.com`, so the SVGs could not be vendored at authoring time. Run the
-> script from a machine with normal Figma access.
+Eight of the exports (`n8569`, `n8575`, `n8586`, `n8592` and their copy-B twins)
+are rooted at the animated node itself rather than at its parent. Rooting at the
+parent bakes that node's resting rotation into the SVG, which would double up
+against the `rotate` track applied to the same node.
 
 ## How the design maps to the code
 
@@ -73,24 +69,48 @@ transcribed from the Figma motion context and keyed by node id.
 
 ## Deviations from the Figma file
 
-Three, all deliberate:
+Four, all deliberate:
 
 1. **Playback mode.** Figma loops the cohort (`loopMode: loop`); this plays once
    per tap and holds the final frame, which is the requested interaction.
 2. **Typeface.** The readouts are specified in `One UI Sans GUI SemiBold`, a
-   Samsung typeface with no web distribution. A system sans stack stands in. The
-   readout widths (66px / 67px) are pinned in code so the substitute font cannot
-   shift the layout or the −74.5px slide of the target pace.
+   Samsung typeface with no web distribution. Substitutes measure ~84px against
+   the 66px box Figma designed — enough to push the current pace over the slot
+   the target pace slides into. `FitText.tsx` condenses each readout to its
+   designed width (it only ever compresses, never stretches, so it is a no-op
+   where the real font is installed).
 3. **Rig root translation (480:8561).** Figma reports this track in coordinates
    whose origin does not match the node's layout box — its first keyframe is
    `8.52, 7.202` on a node the file places at `0, 0`. Applied raw as a CSS
    translate it would shove the 6px-wide figure across the 18px icon, so the
-   track is applied as a delta from its own first keyframe. The rest pose lands
-   where Figma renders it and the ~0.3 × 0.7px run-cycle bob is preserved.
+   track is applied as a delta from its own first keyframe. Verified against
+   Figma's own render of `480:8559`: the rig lands in the same position and
+   extent.
+4. **`mask-clip` on the strip.** The Figma reference emits `mask-clip: no-clip`,
+   which leaves whatever falls outside the mask image unmasked. Since the
+   chevron's fill is inset to -4px horizontally, its right edge leaked as a hard
+   red rectangle that Figma's own render does not show. The default `border-box`
+   clip matches Figma.
+
+Two notes on reading the idle frame: it is animation frame 0, not the state
+Figma shows on canvas. At frame 0 the chevron sits 23px lower and unlit, the
+glow has not begun its sweep, and both the runner rig and the target pace are at
+opacity 0 — all of which Figma's canvas render shows in their resting state
+instead.
 
 One implementation note: `get_design_context` flattens the rotating wrapper
 frames out of its output (480:8566, 8569, 8572, 8575, 8583, 8586, 8589, 8592 and
 their copy-B twins). They are reinstated in `RunnerFigure.tsx` as full-bleed
-wrappers, and the eight animated leaves use exports rooted at themselves so
-their resting rotation is not baked into the SVG *and* applied again as a
-transform.
+wrappers.
+
+## Verification
+
+Checked against the Figma file with a headless Chromium pass:
+
+- idle frame diffed against Figma's 600 x 600 render of `480:8550`;
+- the runner rig diffed against Figma's render of `480:8559`, confirming the
+  rig-root handling above;
+- all 28 tracks probed over time — joints cycle within the 0.66–1.28s window the
+  Figma `times` specify, copies A and B stay phase-offset, the chevron rises
+  while its blur ramps, the glow sweeps and holds;
+- a second tap restarts from frame 0.

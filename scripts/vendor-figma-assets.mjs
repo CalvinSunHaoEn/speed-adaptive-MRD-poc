@@ -10,15 +10,26 @@
  *
  *   node scripts/vendor-figma-assets.mjs
  */
-import { mkdir, writeFile } from 'node:fs/promises'
+import { spawnSync } from 'node:child_process'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+// Node's built-in fetch ignores HTTPS_PROXY unless NODE_USE_ENV_PROXY is set at
+// startup, which cannot be done from inside a running process. Behind a proxy,
+// re-exec ourselves once with the flag so the script works there as well as on
+// a machine with direct access.
+if (process.env.HTTPS_PROXY && !process.env.NODE_USE_ENV_PROXY) {
+  const { status } = spawnSync(process.execPath, [fileURLToPath(import.meta.url)], {
+    stdio: 'inherit',
+    env: { ...process.env, NODE_USE_ENV_PROXY: '1' },
+  })
+  process.exit(status ?? 1)
+}
+
 const here = dirname(fileURLToPath(import.meta.url))
 const dir = join(here, '..', 'src', 'assets', 'figma')
-const exports = JSON.parse(
-  await (await import('node:fs/promises')).readFile(join(dir, 'exports.json'), 'utf8'),
-)
+const exports = JSON.parse(await readFile(join(dir, 'exports.json'), 'utf8'))
 
 await mkdir(dir, { recursive: true })
 
