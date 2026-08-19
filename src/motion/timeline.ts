@@ -37,7 +37,13 @@ const EASE_SMOOTH = [0.5, 0, 0.5, 1] as const
 
 const GLOW_WHITE =
   '0px 0px 4px 0px #FFF inset, 0px 0px 12px 0px rgba(255, 255, 255, 0.5) inset'
-const GLOW_RED = '0px 0px 4px 0px #F00 inset, 0px 0px 12px 0px #F00 inset'
+/*
+ * The red glow is red over exactly the window where the pill sits at 2x, and a
+ * CSS transform scales a box-shadow's blur along with everything else. Halving
+ * the designed 4px/12px blurs makes them render at their designed size once
+ * scaled, matching the tight ring Figma draws instead of a doubled, diffuse one.
+ */
+const GLOW_RED = '0px 0px 2px 0px #F00 inset, 0px 0px 6px 0px #F00 inset'
 
 // ---------------------------------------------------------------------------
 // Shared `times` arrays for the runner rig. Figma emits per-joint arrays that
@@ -93,13 +99,52 @@ const T_F = [
   0.2843, 0.2888, 0.2949, 0.301, 1,
 ]
 
-/** A joint of the runner rig: a single linear `rotate` track about a pivot. */
+/**
+ * The rig's exported keyframes are one run cycle packed into a dense window
+ * (about t=0.156..0.303), padded by a hold at t=0 and another at t=1. Read
+ * literally that makes the figure run for 0.62s and then freeze — and since the
+ * runner only fades in at 1.18s, just 0.10s of its 2.40s on screen would show
+ * any movement at all. Figma runs it continuously the whole time it is visible:
+ * the export captures a single iteration of a nested looping animation, and the
+ * window is seamless (its first and last values are identical), so it is meant
+ * to repeat.
+ *
+ * `cycle` drops the two padding holds and rescales the window into a standalone
+ * ~0.62s loop. It repeats enough times to outlast the 4.221s timeline and then
+ * stops, so nothing keeps animating under an invisible layer.
+ */
+const CYCLE_REPEATS = 6
+
+function cycle(values: number[], times: number[]) {
+  const first = 1
+  const last = times.length - 2
+  const span = times[last] - times[first]
+  return {
+    values: values.slice(first, last + 1),
+    times: times.slice(first, last + 1).map((t) => (t - times[first]) / span),
+    duration: span * DURATION_S,
+    // Hold the rest pose until the point in the timeline where Figma starts the
+    // cycle, so the strides land on the same beat as the source.
+    delay: times[first] * DURATION_S,
+  }
+}
+
+/** A joint of the runner rig: a looping linear `rotate` cycle about a pivot. */
 function joint(transformOrigin: string, values: number[], times: number[]): Track {
+  const c = cycle(values, times)
   return {
     transformOrigin,
-    initial: { rotate: values[0] },
-    animate: { rotate: values },
-    transition: { rotate: { duration: DURATION_S, times, ease: 'linear' } },
+    initial: { rotate: c.values[0] },
+    animate: { rotate: c.values },
+    transition: {
+      rotate: {
+        duration: c.duration,
+        times: c.times,
+        ease: 'linear',
+        repeat: CYCLE_REPEATS,
+        delay: c.delay,
+      },
+    },
   }
 }
 
@@ -110,12 +155,17 @@ function joint(transformOrigin: string, values: number[], times: number[]): Trac
 /** Pill geometry: width / position / scale. Pivot is the pill's top centre. */
 export const speedIndicator: Track = {
   transformOrigin: '50% 0%',
-  initial: { scaleX: 1, scaleY: 1, width: 127, x: 0 },
+  initial: { scaleX: 1, scaleY: 1, width: 127, x: 0, borderRadius: 24 },
   animate: {
     scaleX: [1, 1, 2, 2, 1, 1],
     scaleY: [1, 1, 2, 2, 1, 1],
     width: [127, 127, 48, 48, 127, 127],
     x: [0, 0, 39, 39, 0, 0],
+    // Figma keeps the 24px corner radius constant while the pill scales, so the
+    // open state reads as a rounded square. A CSS transform scales the radius
+    // with everything else, which turns the 48x48 box into a circle at 2x, so
+    // the radius is counter-scaled to hold its rendered size at 24.
+    borderRadius: [24, 24, 12, 12, 24, 24],
   },
   transition: {
     scaleX: {
@@ -136,6 +186,11 @@ export const speedIndicator: Track = {
     x: {
       duration: DURATION_S,
       times: [0, 0.1266, 0.2164, 0.9045, 0.9988, 1],
+      ease: ['linear', EASE_INOUT, 'linear', EASE_INOUT, 'linear'],
+    },
+    borderRadius: {
+      duration: DURATION_S,
+      times: [0, 0.2362, 0.3471, 0.8143, 0.8865, 1],
       ease: ['linear', EASE_INOUT, 'linear', EASE_INOUT, 'linear'],
     },
   },
@@ -202,12 +257,22 @@ export const runnerIcon: Track = {
 // ---------------------------------------------------------------------------
 // Rig root — 480:8561
 //
-// Figma reports this track in absolute coordinates whose origin does not match
-// the node's layout box (the first keyframe is 8.52 / 7.202 on a node the file
-// places at 0 / 0). Applying those raw as a CSS translate would shove the whole
-// 6px-wide figure across the 18px icon. We therefore apply the track as a delta
-// from its own first keyframe: the rest pose lands exactly where Figma renders
-// it, and the ~0.3 x 0.7px run-cycle bob is preserved intact.
+// These are real CSS translates and are applied as given. The figure's box is
+// 6 x 18.945 at (0.75, -6.973) inside the 18 x 18 icon, so the translate lands
+// it at (9.27, 0.229) — box centre (12.27, 9.70) in icon coordinates.
+//
+// Measured against a frame export of the Figma timeline, the figure's centroid
+// while the pill is open sits at (11.07, 9.71) in those same coordinates: the
+// vertical agreement is exact, and the horizontal difference is just the
+// figure's mass sitting left of its box centre.
+//
+// An earlier version subtracted the first keyframe from this track, on the
+// reasoning that a translate of +8.52 across an 18px icon looked like a
+// coordinate-space mismatch. That was wrong, and only the static canvas render
+// was available to check it against — which cannot tell the two apart because
+// the runner is transparent at t=0. Untranslated, the figure's head sits at
+// y -6.97..-2.83 and is clipped away entirely, leaving the mid-body fragment
+// visible in the deployed build.
 // ---------------------------------------------------------------------------
 
 const ROOT_X = [
@@ -221,14 +286,15 @@ const ROOT_Y = [
   7.836, 7.827, 7.798, 7.72, 7.6, 7.44, 7.419, 7.27, 7.166, 7.202, 7.202,
 ]
 
-const relative = (values: number[]) => values.map((v) => v - values[0])
+const rootX = cycle(ROOT_X, T_ROOT)
+const rootY = cycle(ROOT_Y, T_ROOT)
 
 export const rigRoot: Track = {
-  initial: { x: 0, y: 0 },
-  animate: { x: relative(ROOT_X), y: relative(ROOT_Y) },
+  initial: { x: rootX.values[0], y: rootY.values[0] },
+  animate: { x: rootX.values, y: rootY.values },
   transition: {
-    x: { duration: DURATION_S, times: T_ROOT, ease: 'linear' },
-    y: { duration: DURATION_S, times: T_ROOT, ease: 'linear' },
+    x: { duration: rootX.duration, times: rootX.times, ease: 'linear', repeat: CYCLE_REPEATS, delay: rootX.delay },
+    y: { duration: rootY.duration, times: rootY.times, ease: 'linear', repeat: CYCLE_REPEATS, delay: rootY.delay },
   },
 }
 

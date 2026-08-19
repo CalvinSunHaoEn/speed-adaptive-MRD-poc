@@ -2,9 +2,9 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    # main so the site keeps deploying once this work merges; the feature
-    # branch so the prototype can be opened in the glasses before it does.
-    branches: [main, claude/figma-meta-rayna-prototype-x6m6j7]
+    # Pages only accepts deployments from the default branch, so building any
+    # other branch here would pass and then fail at the deploy step every time.
+    branches: [main]
   workflow_dispatch:
 
 permissions:

@@ -27,14 +27,15 @@ npm run build
 npm run preview
 ```
 
-Pushing to `main` or to `claude/figma-meta-rayna-prototype-x6m6j7` deploys to
-GitHub Pages via `.github/workflows/deploy.yml`.
+Pushing to `main` deploys to GitHub Pages via
+`.github/workflows/deploy.yml`, and the prototype is live at
+**https://calvinsunhaoen.github.io/speed-adaptive-MRD-poc/** — open that in the
+glasses.
 
-**This needs enabling once, by hand:** repo *Settings → Pages → Source:
-**GitHub Actions***. Until it is, the `build` job passes and the `deploy` job
-fails immediately — it cannot start without the `github-pages` environment, so
-it produces no log. Once enabled, the prototype lives at
-`https://<owner>.github.io/speed-adaptive-MRD-poc/` — open that in the glasses.
+Only `main` deploys: GitHub Pages accepts deployments from the default branch
+only, so wiring other branches in would build fine and then fail at the deploy
+step every time. To preview a branch before merging, run it locally with
+`npm run dev` and open the printed Network URL on the glasses.
 
 ## Figma assets
 
@@ -73,8 +74,6 @@ transcribed from the Figma motion context and keyed by node id.
 
 ## Deviations from the Figma file
 
-Four, all deliberate:
-
 1. **Playback mode.** Figma loops the cohort (`loopMode: loop`); this plays once
    per tap and holds the final frame, which is the requested interaction.
 2. **Typeface.** The readouts are specified in `One UI Sans GUI SemiBold`, a
@@ -83,38 +82,55 @@ Four, all deliberate:
    the target pace slides into. `FitText.tsx` condenses each readout to its
    designed width (it only ever compresses, never stretches, so it is a no-op
    where the real font is installed).
-3. **Rig root translation (480:8561).** Figma reports this track in coordinates
-   whose origin does not match the node's layout box — its first keyframe is
-   `8.52, 7.202` on a node the file places at `0, 0`. Applied raw as a CSS
-   translate it would shove the 6px-wide figure across the 18px icon, so the
-   track is applied as a delta from its own first keyframe. Verified against
-   Figma's own render of `480:8559`: the rig lands in the same position and
-   extent.
-4. **`mask-clip` on the strip.** The Figma reference emits `mask-clip: no-clip`,
+3. **`mask-clip` on the strip.** The Figma reference emits `mask-clip: no-clip`,
    which leaves whatever falls outside the mask image unmasked. Since the
    chevron's fill is inset to -4px horizontally, its right edge leaked as a hard
    red rectangle that Figma's own render does not show. The default `border-box`
    clip matches Figma.
+4. **No inner shadow on the chevron.** Figma's Arrow carries an inner-shadow
+   effect that the reference translates to `box-shadow: … inset`. The chevron's
+   mask is not a chevron but a full-box radial-gradient vignette, so a box-level
+   inset shadow floods the whole 240 × 150 rectangle. Dropping it takes the strip
+   from 11.37 mean error against Figma's render to 0.53.
 
-Two notes on reading the idle frame: it is animation frame 0, not the state
-Figma shows on canvas. At frame 0 the chevron sits 23px lower and unlit, the
-glow has not begun its sweep, and both the runner rig and the target pace are at
-opacity 0 — all of which Figma's canvas render shows in their resting state
-instead.
+## Reading the exported motion data
 
-One implementation note: `get_design_context` flattens the rotating wrapper
-frames out of its output (480:8566, 8569, 8572, 8575, 8583, 8586, 8589, 8592 and
-their copy-B twins). They are reinstated in `RunnerFigure.tsx` as full-bleed
-wrappers.
+Three places where the export cannot be taken literally. Each was settled by
+measuring against a frame export of the Figma timeline, not the static canvas
+render — the canvas render cannot decide any of them, because the runner is
+fully transparent at t=0.
+
+- **The rig's keyframes are one iteration of a loop.** They pack a single stride
+  into t=0.156..0.303 with holds at t=0 and t=1. Read literally the figure runs
+  for 0.62s and freezes, and since it only fades in at 1.18s just 0.10s of its
+  2.40s on screen would move. The window is seamless, so `cycle()` rescales it
+  into a standalone ~0.62s loop that repeats through the timeline.
+- **The rig-root translate (480:8561) is a real translate.** Applied as given it
+  puts the figure's box centre at (12.27, 9.70) in icon coordinates, against a
+  measured (11.07, 9.71) in Figma — the vertical agreement is exact. Treating it
+  as a delta from its own first keyframe instead leaves the head at y −6.97..−2.83,
+  clipped away entirely.
+- **A CSS transform scales more than Figma's does.** The pill's 2× scale drags
+  its corner radius and its glow's blur along with it, turning the 48 × 48 box
+  into a circle with a doubled ring. Both are counter-scaled so they render at
+  their designed 24px radius and 4px/12px blurs.
+
+One structural note: `get_design_context` flattens the rotating wrapper frames
+out of its output (480:8566, 8569, 8572, 8575, 8583, 8586, 8589, 8592 and their
+copy-B twins) — exactly the nodes carrying rotation keyframes. They are
+reinstated in `RunnerFigure.tsx` as full-bleed wrappers.
+
+The idle frame is animation frame 0, not the state Figma shows on canvas: the
+chevron sits 23px lower and unlit, the glow has not begun its sweep, and both the
+runner and the target pace are at opacity 0.
 
 ## Verification
 
-Checked against the Figma file with a headless Chromium pass:
+Measured against a frame export of the Figma timeline with a headless Chromium
+pass, rather than eyeballed:
 
-- idle frame diffed against Figma's 600 x 600 render of `480:8550`;
-- the runner rig diffed against Figma's render of `480:8559`, confirming the
-  rig-root handling above;
-- all 28 tracks probed over time — joints cycle within the 0.66–1.28s window the
-  Figma `times` specify, copies A and B stay phase-offset, the chevron rises
-  while its blur ramps, the glow sweeps and holds;
-- a second tap restarts from frame 0.
+- runner centroid x = 299.4–300.0 against Figma's 299.7–300.2 (pill centre 300);
+- strip region 0.53 mean per-channel error against Figma's render of the frame;
+- pill 127 × 48 radius 24 → 96 × 96 radius 12, rendering at its designed 24;
+- joint angles change at every sample across the runner's visible window;
+- a second tap restarts from frame 0; no console errors, no external requests.
