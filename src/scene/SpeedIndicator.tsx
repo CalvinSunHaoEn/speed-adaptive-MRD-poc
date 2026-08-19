@@ -1,16 +1,9 @@
 import { motion } from 'motion/react'
 import type { CSSProperties } from 'react'
-import {
-  anim,
-  paceCurrent,
-  paceSetterIcon,
-  paceTarget,
-  speedIndicator,
-  speedIndicatorGlow,
-} from '../motion/timeline'
+import { anim } from '../motion/core'
 import { FitText } from './FitText'
 import { RunnerIcon } from './RunnerIcon'
-import { asset } from '../assets/figma'
+import type { Mode } from './modes'
 
 /**
  * `Speed Indicator` (480:8558) — the pace pill.
@@ -45,7 +38,14 @@ const readout: CSSProperties = {
 
 const line: CSSProperties = { lineHeight: 'normal', margin: 0 }
 
-export function SpeedIndicator({ playing }: { playing: boolean }) {
+export function SpeedIndicator({ mode, playing }: { mode: Mode; playing: boolean }) {
+  const {
+    speedIndicator,
+    speedIndicatorGlow,
+    paceCurrent,
+    paceTarget,
+    paceSetterIcon,
+  } = mode.tracks
   return (
     <motion.div
       data-node-id="480:8558"
@@ -77,7 +77,7 @@ export function SpeedIndicator({ playing }: { playing: boolean }) {
         }}
       />
 
-      <RunnerIcon playing={playing} />
+      <RunnerIcon mode={mode} playing={playing} />
 
       {/* 480:8627 */}
       <motion.div style={{ ...readout, width: 66 }} {...anim(paceCurrent, playing)}>
@@ -89,7 +89,7 @@ export function SpeedIndicator({ playing }: { playing: boolean }) {
       {/* 480:8628 */}
       <motion.div style={{ ...readout, width: 67 }} {...anim(paceTarget, playing)}>
         <FitText width={67} style={line}>
-          7&rsquo;30&rdquo;/km
+          {mode.targetPace}
         </FitText>
       </motion.div>
 
@@ -100,10 +100,10 @@ export function SpeedIndicator({ playing }: { playing: boolean }) {
       >
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: '15.58% 15.32% 12.99% 24.68%' }}>
-            <img alt="" src={asset.iconPaceA} style={leafImg} />
+            <img alt="" src={mode.iconPaceA} style={leafImg} />
           </div>
           <div style={{ position: 'absolute', inset: '15.58% 33.5% 12.99% 6.49%' }}>
-            <img alt="" src={asset.iconPaceB} style={leafImg} />
+            <img alt="" src={mode.iconPaceB} style={leafImg} />
           </div>
         </div>
       </motion.div>

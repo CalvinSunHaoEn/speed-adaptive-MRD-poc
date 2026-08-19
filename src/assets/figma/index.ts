@@ -43,3 +43,11 @@ export const asset = Object.fromEntries(
 export const assetsAreVendored = Object.keys(remote).every(
   (name) => `./${name}.svg` in local,
 )
+
+/**
+ * The Slow Down Arrow with its inner shadow recoloured to the cyan its motion
+ * track specifies — see `scripts/vendor-figma-assets.mjs`. The raw export bakes
+ * the colour red, which is the frame's stored state rather than what Figma
+ * renders once the timeline runs.
+ */
+export { default as sdArrowFillCyan } from './sdArrowFill-cyan.svg?url'

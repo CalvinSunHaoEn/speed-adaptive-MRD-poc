@@ -4,16 +4,25 @@ A web prototype of Figma frame **`480:8550` "Speed up Icon+STRIP META POC"**
 ([Adaptive Speed Display](https://www.figma.com/design/6LyB9UDTJOIJCJPtdoLUnX/Adaptive-Speed-Display?node-id=480-8550)),
 built to be opened in the browser on Meta Ray-Ban Display glasses.
 
-Tap the neural band to play the animation. Tap again to restart it from the top.
+Two modes: **Speed up** (Figma `480:8550`) and **Slow down** (`499:9370`). Tap
+the neural band to play the current one; swipe to switch between them.
 
 ## Interaction
 
 | | |
 | --- | --- |
-| **Play / restart** | Neural band tap (arrives as an ordinary pointer event), a click, or Enter / Space |
-| **Playback** | Plays the 4.221s timeline once, then holds the last frame |
+| **Play / restart** | Tap, click, or Enter / Space |
+| **Switch mode** | Swipe left → Slow down, swipe right → Speed up. Arrow keys work too |
+| **Playback** | Plays the timeline once (4.221s / 4.218s), then holds the last frame |
+| **After a switch** | Frame 0 of the new mode, waiting for a tap — switching never auto-plays |
 | **Before the first tap** | Frame 0, held static |
 | **Canvas** | Authored at the display's native 600 × 600, scaled uniformly to fit the viewport |
+
+How the band's gestures reach the page isn't documented, so
+[`useGesture.ts`](src/useGesture.ts) listens on every plausible route at once —
+pointer, touch, keyboard and horizontal wheel. A tap is only recognised on
+release, after travelling less than 10px; otherwise the first touch of every
+swipe would fire playback.
 
 Every tap remounts the scene, which restarts all 28 animated nodes at exactly
 t = 0 — they stay in sync rather than each drifting on its own clock.

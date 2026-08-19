@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import type { CSSProperties, ReactNode } from 'react'
-import { anim, type RigTracks, type Track } from '../motion/timeline'
+import { anim, type RigTracks, type Track } from '../motion/core'
 
 /**
  * One copy of the runner figure from `pacing-run 2` (480:8559).

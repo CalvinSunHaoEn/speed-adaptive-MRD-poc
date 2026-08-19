@@ -15,8 +15,13 @@ body {
   background: #000;
   color: #fff;
   overflow: hidden;
-  /* A neural band tap must never be read as a double-tap zoom or a selection. */
-  touch-action: manipulation;
+  /*
+   * The page owns every gesture: a tap must not be read as a double-tap zoom,
+   * and a horizontal swipe must not be handed to the browser as a back
+   * navigation before it reaches the mode switch.
+   */
+  touch-action: none;
+  overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;

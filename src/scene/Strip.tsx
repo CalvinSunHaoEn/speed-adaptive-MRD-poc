@@ -1,24 +1,22 @@
 import { motion } from 'motion/react'
 import type { CSSProperties } from 'react'
-import { anim, arrow, ellipseGlow, strip } from '../motion/timeline'
-import { asset } from '../assets/figma'
+import { anim } from '../motion/core'
+import type { Mode } from './modes'
 
 /**
- * `Speed up STRIP` (480:8630) — the chevron that rises from the bottom of the
- * display, plus the ellipse glow that sweeps up behind it five times.
+ * The chevron strip — `Speed up STRIP` (480:8630) and `Slow down STRIP`
+ * (499:9452), which are the same construction in two colourways.
  *
  * Both layers are alpha-masked by vectors exported from Figma: the chevron
- * masks a gradient fill, and the glow is clipped to an ellipse.
+ * masks a gradient fill, and the glow is clipped to an ellipse. Slow Down wraps
+ * the whole thing in `rotate(180deg)` so the chevron points down, which also
+ * flips its inner shadow to the tip — that is where its red comes from, under
+ * the cyan glow sweeping through the body.
  *
- * The chevron reads sharp at the tip and diffuse toward the bottom. That grading
- * is already baked into `arrowFill.svg`, whose path carries an SVG filter with
- * the Arrow's inner shadow (feGaussianBlur stdDeviation 18) and a foreground
- * blur (stdDeviation 2). The export additionally reports a flat `filter:
- * blur(10px)` on the node; applying that on top double-blurs the asset and
- * flattens the whole shape — measured down a frame of the Figma timeline, it
- * drops the horizontal edge gradient to a constant 2 per row against Figma's 68
- * at the tip falling to 4 at the bottom, and dims the tip from 186 to 93. So the
- * blur is left to the asset that already contains it.
+ * Blur is left to the assets, which carry it baked into their own SVG filters.
+ * Speed Up's export additionally reports a flat `filter: blur(10px)` on the
+ * node; applying it double-blurs the artwork and flattens the tip, so it is not
+ * applied. Slow Down's Arrow has no filter track at all.
  */
 
 const masked = (src: string, size: string, position?: string): CSSProperties => ({
@@ -33,41 +31,50 @@ const masked = (src: string, size: string, position?: string): CSSProperties => 
   ...(position ? { maskPosition: position, WebkitMaskPosition: position } : null),
 })
 
-export function SpeedUpStrip({ playing }: { playing: boolean }) {
+export function Strip({ mode, playing }: { mode: Mode; playing: boolean }) {
+  const { arrow, ellipseGlow, strip } = mode.tracks
+  const s = mode.strip
+
   return (
     <div
       data-node-id="480:8630"
-      style={{ position: 'absolute', left: 70, top: 350, width: 240, height: 150 }}
+      style={{
+        position: 'absolute',
+        left: 70,
+        top: 350,
+        width: 240,
+        height: 150,
+        transform: s.rotated ? 'rotate(180deg)' : undefined,
+      }}
     >
-      {/* 480:8631 — SpeedUpArrow, the group Figma fades in and out as one */}
+      {/* SpeedUpArrow — the group Figma fades in and out as one */}
       <motion.div
         data-node-id="480:8631"
         style={{ position: 'absolute', inset: 0 }}
         {...anim(strip, playing)}
       >
-        {/* 480:8633 — Arrow */}
+        {/* Arrow */}
         <motion.div
           style={{ position: 'absolute', left: 0, top: 0, width: 240, height: 150 }}
           {...anim(arrow, playing)}
         >
-          <div style={{ position: 'absolute', inset: 0, ...masked(asset.arrowMask, '240px 150px') }}>
-            <div style={{ position: 'absolute', inset: '-0.67% -1.67% 6.74% -1.67%' }}>
+          <div style={{ position: 'absolute', inset: 0, ...masked(s.arrowMask, '240px 150px') }}>
+            <div style={{ position: 'absolute', inset: s.arrowFillInset }}>
               <img
                 alt=""
-                src={asset.arrowFill}
+                src={s.arrowFill}
                 style={{ display: 'block', width: '100%', height: '100%', maxWidth: 'none' }}
               />
             </div>
           </div>
-
         </motion.div>
 
-        {/* 480:8635 — glow sweep, clipped to the ellipse mask */}
+        {/* Glow sweep, clipped to the ellipse mask */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            ...masked(asset.ellipseMask, '248px 140.896px', '-4px -0.999px'),
+            ...masked(s.ellipseMask, s.ellipseMaskSize, s.ellipseMaskPosition),
           }}
         >
           <motion.div
@@ -86,7 +93,7 @@ export function SpeedUpStrip({ playing }: { playing: boolean }) {
           >
             <img
               alt=""
-              src={asset.ellipseGlow}
+              src={s.ellipseGlow}
               style={{
                 position: 'absolute',
                 inset: 0,

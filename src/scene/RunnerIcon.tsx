@@ -1,41 +1,20 @@
 import { motion } from 'motion/react'
-import { anim, rigA, rigB, rigRoot, runnerIcon } from '../motion/timeline'
-import { RunnerFigure, type RigAssets } from './RunnerFigure'
-import { asset } from '../assets/figma'
+import { anim } from '../motion/core'
+import { RunnerFigure } from './RunnerFigure'
+import type { Mode } from './modes'
 
 /**
  * `pacing-run 2` (480:8559) — the animated runner that replaces the static
  * pace-setter glyph while the pill is expanded.
  *
- * Figma stores two full copies of the figure (480:8562-8592 and, nested one
- * level deeper in 480:8594, 480:8595-8625). They share every vector export and
- * differ only in the phase of their joint rotations.
+ * Figma stores two full copies of the figure, nested one level deeper. They
+ * share every vector export and differ only in the phase of their joint
+ * rotations. Both frames use the same construction; the mode supplies the
+ * artwork (red for Speed Up, cyan for Slow Down) and the timing.
  */
 
-const copyA: RigAssets = {
-  upper1Vec: asset.n8564,
-  mid1Vec: asset.n8567,
-  end1: asset.n8569,
-  upper2Vec: asset.n8573,
-  end2: asset.n8575,
-  torso: asset.n8577,
-  head: asset.n8579,
-  upper3Vec: asset.n8581,
-  mid3Vec: asset.n8584,
-  end3: asset.n8586,
-  upper4Vec: asset.n8590,
-  end4: asset.n8592,
-}
-
-const copyB: RigAssets = {
-  ...copyA,
-  end1: asset.n8602,
-  end2: asset.n8608,
-  end3: asset.n8619,
-  end4: asset.n8625,
-}
-
-export function RunnerIcon({ playing }: { playing: boolean }) {
+export function RunnerIcon({ mode, playing }: { mode: Mode; playing: boolean }) {
+  const { runnerIcon, rigRoot, rigA, rigB } = mode.tracks
   return (
     <motion.div
       data-node-id="480:8559"
@@ -63,9 +42,9 @@ export function RunnerIcon({ playing }: { playing: boolean }) {
           style={{ position: 'absolute', inset: 0 }}
           {...anim(rigRoot, playing)}
         >
-          <RunnerFigure copy="A" tracks={rigA} assets={copyA} playing={playing} />
+          <RunnerFigure copy="A" tracks={rigA} assets={mode.rigA} playing={playing} />
           {/* 480:8594 */}
-          <RunnerFigure copy="B" tracks={rigB} assets={copyB} playing={playing} />
+          <RunnerFigure copy="B" tracks={rigB} assets={mode.rigB} playing={playing} />
         </motion.div>
       </div>
     </motion.div>
